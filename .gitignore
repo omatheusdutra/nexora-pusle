@@ -1,0 +1,10 @@
+node_modules
+.pnpm-store
+dist
+coverage
+.env
+.env.local
+.vscode/
+.DS_Store
+*.log
+apps/api/prisma/dev.db

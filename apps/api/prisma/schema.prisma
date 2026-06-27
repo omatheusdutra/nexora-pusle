@@ -1,0 +1,70 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum TeamType {
+  CARDS
+  LOANS
+  OTHER
+}
+
+enum AttendanceStatus {
+  QUEUED
+  IN_PROGRESS
+  FINISHED
+  CANCELLED
+}
+
+model Team {
+  id               String       @id @default(cuid())
+  name             String
+  type             TeamType     @unique
+  subjectMatcher   String
+  roundRobinCursor Int          @default(0)
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
+  attendants       Attendant[]
+  attendances      Attendance[]
+
+  @@index([type])
+}
+
+model Attendant {
+  id                       String       @id @default(cuid())
+  name                     String
+  teamId                   String
+  isOnline                 Boolean      @default(true)
+  maxConcurrentAttendances Int          @default(3)
+  createdAt                DateTime     @default(now())
+  updatedAt                DateTime     @updatedAt
+  team                     Team         @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  attendances              Attendance[]
+
+  @@unique([teamId, name])
+  @@index([teamId, isOnline])
+}
+
+model Attendance {
+  id           String           @id @default(cuid())
+  customerName String
+  subject      String
+  status       AttendanceStatus
+  teamId       String
+  attendantId  String?
+  queuedAt     DateTime         @default(now())
+  startedAt    DateTime?
+  finishedAt   DateTime?
+  createdAt    DateTime         @default(now())
+  updatedAt    DateTime         @updatedAt
+  team         Team             @relation(fields: [teamId], references: [id], onDelete: Restrict)
+  attendant    Attendant?       @relation(fields: [attendantId], references: [id], onDelete: SetNull)
+
+  @@index([status])
+  @@index([teamId, status, queuedAt])
+  @@index([attendantId, status])
+}
