@@ -13,7 +13,11 @@ export class SocketRealtimePublisher implements RealtimePublisher {
 
   async attach(
     server: HttpServer,
-    options: { corsOrigin: string; redisUrl?: string; logger?: Pick<Console, "warn"> }
+    options: {
+      corsOrigin: string | string[];
+      redisUrl?: string;
+      logger?: Pick<Console, "warn">;
+    }
   ) {
     this.io = new SocketServer(server, {
       cors: {

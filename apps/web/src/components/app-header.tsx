@@ -1,8 +1,10 @@
 import {
   Bell,
+  Command,
   RefreshCw,
   Search,
   ShieldCheck,
+  SlidersHorizontal,
   UserRound
 } from "lucide-react";
 import { BrandMark } from "./brand-mark";
@@ -15,23 +17,25 @@ export function AppHeader({
   connected,
   dark,
   onToggleTheme,
-  onRefresh
+  onRefresh,
+  onSearchFocus
 }: {
   connected: boolean;
   dark: boolean;
   onToggleTheme: () => void;
   onRefresh: () => void;
+  onSearchFocus?: () => void;
 }) {
   return (
-    <header className="sticky top-0 z-20 border-b border-white/10 bg-background/72 backdrop-blur-2xl">
-      <div className="flex min-h-[72px] flex-col gap-3 px-4 py-3 sm:px-5 xl:flex-row xl:items-center xl:justify-between xl:gap-4">
+    <header className="sticky top-0 z-20 border-b border-border/80 bg-surface backdrop-blur-2xl dark:border-white/10 dark:bg-[#030916]/68">
+      <div className="flex min-h-[64px] flex-col gap-2 px-4 py-2.5 sm:px-5 xl:flex-row xl:items-center xl:justify-between xl:gap-4">
         <div className="flex min-w-0 items-center gap-3">
           <div className="lg:hidden">
             <BrandMark compact />
           </div>
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-2">
-              <RealtimeIndicator connected={connected} />
+              <RealtimeIndicator connected={connected} label="Tempo real" />
               <span className="inline-flex h-8 items-center gap-1.5 rounded-full border border-primary/25 bg-primary/10 px-3 text-xs font-semibold text-primary shadow-inset">
                 <ShieldCheck className="h-3.5 w-3.5" />
                 Tempo real {connected ? "ativo" : "pendente"}
@@ -39,7 +43,7 @@ export function AppHeader({
             </div>
             <div className="mt-1 hidden lg:block">
               <h1 className="truncate text-xl font-semibold tracking-normal">
-                Centro Inteligente de Operações
+                Centro Inteligente de Operacoes
               </h1>
               <p className="text-xs text-muted-foreground">
                 AI Operations Command Center
@@ -55,9 +59,22 @@ export function AppHeader({
               className="h-9 pl-9"
               placeholder="Buscar atendimento, cliente ou atendente"
               aria-label="Busca global"
+              onFocus={onSearchFocus}
             />
+            <span className="pointer-events-none absolute right-2 top-1/2 hidden -translate-y-1/2 items-center gap-1 rounded border border-border bg-background/60 px-1.5 py-0.5 text-[10px] text-muted-foreground xl:inline-flex dark:border-white/10 dark:bg-white/6">
+              <Command className="h-3 w-3" /> K
+            </span>
           </label>
           <div className="flex items-center gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              size="icon"
+              title="Ajustes"
+              aria-label="Ajustes"
+            >
+              <SlidersHorizontal className="h-4 w-4" />
+            </Button>
             <Button
               type="button"
               variant="outline"
@@ -72,22 +89,22 @@ export function AppHeader({
               type="button"
               variant="outline"
               size="icon"
-              title="Notificações"
-              aria-label="Notificações"
+              title="Notificacoes"
+              aria-label="Notificacoes"
               className="relative"
             >
               <Bell className="h-4 w-4" />
               <span className="absolute right-1.5 top-1.5 h-2 w-2 rounded-full bg-warning shadow-[0_0_12px_hsl(var(--warning))]" />
             </Button>
             <ThemeToggle dark={dark} onToggle={onToggleTheme} />
-            <div className="hidden h-9 items-center gap-2 rounded-md border border-white/10 bg-white/6 px-2 shadow-inset sm:flex">
+            <div className="hidden h-9 items-center gap-2 rounded-md border border-border bg-background/60 px-2 shadow-inset sm:flex dark:border-white/10 dark:bg-white/6">
               <div className="grid h-7 w-7 place-items-center rounded-sm border border-primary/20 bg-primary/15 text-primary">
                 <UserRound className="h-4 w-4" />
               </div>
               <div className="min-w-0 pr-1">
                 <div className="text-xs font-semibold">Lucas Almeida</div>
                 <div className="text-[11px] text-muted-foreground">
-                  Supervisor de Operações
+                  Supervisor de Operacoes
                 </div>
               </div>
             </div>

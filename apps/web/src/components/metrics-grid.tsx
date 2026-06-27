@@ -32,7 +32,7 @@ export function MetricsGrid({
     return (
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4 2xl:grid-cols-8">
         {Array.from({ length: 8 }).map((_, index) => (
-          <Skeleton key={index} className="h-[104px]" />
+          <Skeleton key={index} className="h-[96px]" />
         ))}
       </div>
     );
@@ -57,42 +57,42 @@ export function MetricsGrid({
       label: "Na fila",
       value: summary.queued,
       icon: ListTodo,
-      trend: summary.queued > 0 ? "atenção operacional" : "fila controlada",
+      trend: summary.queued > 0 ? "atencao operacional" : "fila controlada",
       tone: "warning"
     },
     {
       label: "Finalizados",
       value: summary.finished,
       icon: CheckCircle2,
-      trend: "concluídos no ciclo",
+      trend: "concluidos no ciclo",
       tone: "success"
     },
     {
       label: "Online",
       value: summary.onlineAttendants,
       icon: UsersRound,
-      trend: "equipe disponível",
+      trend: "equipe disponivel",
       tone: "accent"
     },
     {
       label: "Capacidade",
       value: `${summary.usedCapacity}/${summary.totalCapacity}`,
       icon: Gauge,
-      trend: "slots simultâneos",
+      trend: "slots simultaneos",
       tone: "violet"
     },
     {
       label: "Uso",
       value: formatPercent(summary.capacityUtilization),
       icon: Gauge,
-      trend: "ocupação agora",
+      trend: "ocupacao agora",
       tone: "warning"
     },
     {
-      label: "Espera média",
+      label: "Espera media",
       value: formatSeconds(summary.averageWaitSeconds),
       icon: Clock3,
-      trend: "tempo médio de entrada",
+      trend: "tempo medio de entrada",
       tone: "primary"
     }
   ];

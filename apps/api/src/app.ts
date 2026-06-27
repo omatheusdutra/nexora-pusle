@@ -10,7 +10,7 @@ import { registerRoutes } from "./http/routes";
 
 export interface BuildAppOptions {
   container: AppContainer;
-  corsOrigin?: string;
+  corsOrigin?: string | string[];
   logger?: boolean | { level: string };
   rateLimitMax?: number;
   rateLimitWindow?: string;
@@ -30,7 +30,10 @@ export async function buildApp(
     contentSecurityPolicy: false
   });
   await app.register(cors, {
-    origin: options.corsOrigin ?? "http://localhost:5173",
+    origin: options.corsOrigin ?? [
+      "http://localhost:5173",
+      "http://localhost:5174"
+    ],
     credentials: true
   });
   await app.register(rateLimit, {

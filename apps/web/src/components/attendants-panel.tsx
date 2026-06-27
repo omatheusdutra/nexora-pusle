@@ -34,7 +34,7 @@ export function AttendantsPanel({
   });
 
   if (loading) {
-    return <Skeleton className="h-96" />;
+    return <Skeleton className="h-[360px]" />;
   }
 
   return (
@@ -43,8 +43,9 @@ export function AttendantsPanel({
       eyebrow="Workforce"
       icon={<UsersRound className="h-4 w-4" />}
       live
+      compact
     >
-      <div className="grid max-h-[430px] gap-3 overflow-y-auto pr-1 nexora-scrollbar">
+      <div className="grid max-h-[360px] gap-2.5 overflow-y-auto pr-1 nexora-scrollbar">
         {attendants?.length ? (
           attendants.map((attendant) => (
             <AgentCard

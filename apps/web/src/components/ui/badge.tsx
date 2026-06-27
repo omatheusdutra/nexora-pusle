@@ -2,7 +2,8 @@ import type { HTMLAttributes } from "react";
 import { cn } from "../../lib/utils";
 
 const variants: Record<string, string> = {
-  neutral: "bg-white/6 text-muted-foreground border-white/10",
+  neutral:
+    "bg-background/70 text-muted-foreground border-border dark:bg-white/6 dark:border-white/10",
   success: "bg-success/12 text-success border-success/35 shadow-[0_0_24px_-18px_hsl(var(--success))]",
   warning: "bg-warning/12 text-warning border-warning/35 shadow-[0_0_24px_-18px_hsl(var(--warning))]",
   destructive:

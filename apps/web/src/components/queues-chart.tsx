@@ -19,7 +19,7 @@ export function QueuesChart({
   loading: boolean;
 }) {
   if (loading) {
-    return <Skeleton className="h-[286px]" />;
+    return <Skeleton className="h-[266px]" />;
   }
 
   const chartData =
@@ -47,19 +47,21 @@ export function QueuesChart({
       title="Fila por time"
       eyebrow="Roteamento"
       icon={<ListTodo className="h-4 w-4" />}
-      className="min-h-[286px]"
+      className="min-h-[266px]"
       live
+      compact
     >
-      <div className="grid gap-4 sm:grid-cols-[180px_1fr] xl:grid-cols-1 2xl:grid-cols-[180px_1fr]">
-        <div className="relative h-44">
+      <div className="grid gap-3 sm:grid-cols-[160px_1fr] xl:grid-cols-1 2xl:grid-cols-[170px_1fr]">
+        <div className="relative h-40">
+          <div className="absolute inset-3 rounded-full border border-primary/10 bg-primary/5 blur-[1px]" />
           <ResponsiveContainer width="100%" height="100%">
             <PieChart>
               <Pie
                 data={ringData}
                 dataKey="value"
                 nameKey="team"
-                innerRadius={54}
-                outerRadius={78}
+                innerRadius={49}
+                outerRadius={72}
                 paddingAngle={5}
                 stroke="hsl(var(--background))"
                 strokeWidth={3}
@@ -85,7 +87,7 @@ export function QueuesChart({
           </ResponsiveContainer>
           <div className="pointer-events-none absolute inset-0 grid place-items-center">
             <div className="text-center">
-              <div className="text-4xl font-semibold tabular-nums">
+              <div className="text-4xl font-black tabular-nums">
                 {totalQueued}
               </div>
               <div className="text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
@@ -95,7 +97,7 @@ export function QueuesChart({
           </div>
         </div>
 
-        <div className="grid content-center gap-3">
+        <div className="grid content-center gap-2.5">
           {chartData.map((item) => (
             <div key={item.team} className="grid gap-2">
               <div className="flex items-center justify-between gap-3 text-sm">
@@ -107,7 +109,7 @@ export function QueuesChart({
                   {item.queued} na fila
                 </span>
               </div>
-              <div className="h-2.5 overflow-hidden rounded-full border border-white/8 bg-white/8 shadow-inset">
+              <div className="h-2 overflow-hidden rounded-full border border-border bg-muted shadow-inset dark:border-white/8 dark:bg-white/8">
                 <div
                   className="h-full rounded-full transition-all duration-500"
                   style={{

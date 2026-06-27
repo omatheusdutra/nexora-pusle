@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Nexora Pulse">
+  <defs>
+    <linearGradient id="nexora-a" x1="8" x2="56" y1="10" y2="54" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#20d7ff" />
+      <stop offset=".5" stop-color="#8b5cf6" />
+      <stop offset="1" stop-color="#22d3a6" />
+    </linearGradient>
+    <filter id="nexora-glow" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="2.6" result="blur" />
+      <feMerge>
+        <feMergeNode in="blur" />
+        <feMergeNode in="SourceGraphic" />
+      </feMerge>
+    </filter>
+  </defs>
+  <rect width="64" height="64" rx="14" fill="#03111f" />
+  <path d="M13 40V24c0-4.4 5.3-6.7 8.5-3.6l21 20.2c3.2 3.1 8.5.8 8.5-3.6V24" fill="none" stroke="url(#nexora-a)" stroke-linecap="round" stroke-width="6" filter="url(#nexora-glow)" />
+  <path d="M18 46h28" stroke="#dffaff" stroke-linecap="round" stroke-opacity=".72" stroke-width="4" />
+  <circle cx="46" cy="18" r="4" fill="#22d3a6" />
+</svg>

@@ -20,7 +20,7 @@ export function CapacityBar({
   return (
     <div
       className={cn(
-        "h-2 overflow-hidden rounded-full border border-white/8 bg-white/8 shadow-inset",
+        "h-2 overflow-hidden rounded-full border border-border bg-muted shadow-inset dark:border-white/8 dark:bg-white/8",
         className
       )}
       aria-label={`Capacidade ${value} de ${max}`}

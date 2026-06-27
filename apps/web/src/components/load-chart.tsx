@@ -31,7 +31,7 @@ export function LoadChart({
   loading: boolean;
 }) {
   if (loading) {
-    return <Skeleton className="h-[286px]" />;
+    return <Skeleton className="h-[266px]" />;
   }
 
   const chartData =
@@ -48,8 +48,9 @@ export function LoadChart({
       title="Carga dos atendentes"
       eyebrow="Capacidade"
       icon={<Gauge className="h-4 w-4" />}
-      className="min-h-[286px]"
+      className="min-h-[266px]"
       live
+      compact
     >
         {chartData.length ? (
           <div className="grid gap-3">
@@ -64,12 +65,12 @@ export function LoadChart({
                 Alta
               </span>
             </div>
-            <div className="h-56">
+            <div className="h-48">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart
                   data={chartData}
                   layout="vertical"
-                  margin={{ top: 4, right: 14, left: 0, bottom: 0 }}
+                  margin={{ top: 4, right: 10, left: 0, bottom: 0 }}
                 >
                 <defs>
                   <linearGradient id="loadLow" x1="0" x2="1" y1="0" y2="0">

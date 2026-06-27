@@ -17,7 +17,9 @@ export function BrandMark({
       )}
       aria-hidden="true"
     >
-      <div className="absolute inset-1 rounded-md border border-white/10 bg-black/15 shadow-inset" />
+      <div className="absolute inset-0 rounded-lg bg-primary/15 blur-xl" />
+      <div className="absolute inset-1 rotate-45 rounded-md border border-primary/30 bg-primary/10 shadow-neon" />
+      <div className="absolute inset-1 rounded-md border border-border bg-background/45 shadow-inset dark:border-white/10 dark:bg-black/15" />
       <Hexagon
         className={cn(
           "relative text-primary drop-shadow-[0_0_10px_hsl(var(--primary)/0.65)]",

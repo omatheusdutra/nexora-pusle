@@ -9,13 +9,7 @@ const attendantNames: Record<TeamType, string[]> = {
   OTHER: ["Gabriela Lima", "Henrique Duarte", "Iris Monteiro", "Marcelo Vieira"]
 };
 
-const legacySeedPrefixes = [
-  "Cliente Docker",
-  "Cliente Socket",
-  "Cliente Test",
-  "Cliente Demo",
-  "Cliente "
-];
+const legacySeedPrefixes = ["Cliente "];
 
 const demoAttendances: Array<{
   customerName: string;
@@ -32,7 +26,7 @@ const demoAttendances: Array<{
     status: "IN_PROGRESS"
   },
   {
-    customerName: "Aurora Agronegócios LTDA",
+    customerName: "Aurora Agronegocios LTDA",
     subject: "Compra nao reconhecida",
     teamType: "CARDS",
     attendantIndex: 1,
@@ -52,7 +46,7 @@ const demoAttendances: Array<{
     status: "QUEUED"
   },
   {
-    customerName: "Patrícia Lima",
+    customerName: "Patricia Lima",
     subject: "Falha em pagamento por aproximacao",
     teamType: "CARDS",
     status: "QUEUED"
@@ -99,7 +93,7 @@ const demoAttendances: Array<{
     status: "FINISHED"
   },
   {
-    customerName: "Vértice Consultoria",
+    customerName: "Vertice Consultoria",
     subject: "Revisao de taxa aprovada",
     teamType: "LOANS",
     status: "CANCELLED"
@@ -112,7 +106,7 @@ const demoAttendances: Array<{
     status: "IN_PROGRESS"
   },
   {
-    customerName: "Prime Soluções Financeiras",
+    customerName: "Prime Solucoes Financeiras",
     subject: "Alteracao de dados bancarios",
     teamType: "OTHER",
     attendantIndex: 1,
@@ -126,7 +120,7 @@ const demoAttendances: Array<{
     status: "IN_PROGRESS"
   },
   {
-    customerName: "Lumina Tech Serviços",
+    customerName: "Lumina Tech Servicos",
     subject: "Suporte de acesso a conta",
     teamType: "OTHER",
     status: "QUEUED"
@@ -139,7 +133,7 @@ const demoAttendances: Array<{
     status: "FINISHED"
   },
   {
-    customerName: "Terranova Máquinas",
+    customerName: "Terranova Maquinas",
     subject: "Atendimento prioritario",
     teamType: "OTHER",
     status: "CANCELLED"
@@ -165,7 +159,7 @@ async function main() {
 
   await prisma.attendant.deleteMany({
     where: {
-      name: "João Pereira",
+      name: "Joao Pereira",
       attendances: { none: {} }
     }
   });
@@ -218,61 +212,62 @@ async function main() {
   const demoCustomerNames = demoAttendances.map(
     (attendance) => attendance.customerName
   );
-  const demoAttendanceCount = await prisma.attendance.count({
+
+  await prisma.attendance.deleteMany({
     where: {
-      customerName: { in: demoCustomerNames }
+      OR: [
+        { customerName: { in: demoCustomerNames } },
+        { customerName: { contains: "Agroneg" } },
+        { customerName: { startsWith: "Patr" } },
+        { customerName: { contains: "Consultoria" } },
+        { customerName: { startsWith: "Prime Solu" } },
+        { customerName: { startsWith: "Lumina Tech" } },
+        { customerName: { startsWith: "Terranova" } }
+      ]
     }
   });
 
-  if (demoAttendanceCount < demoAttendances.length) {
-    await prisma.attendance.deleteMany({
-      where: {
-        customerName: { in: demoCustomerNames }
+  const now = new Date();
+
+  for (const [index, attendance] of demoAttendances.entries()) {
+    const team = seededTeams.get(attendance.teamType);
+
+    if (!team) {
+      continue;
+    }
+
+    const attendants = await prisma.attendant.findMany({
+      where: { teamId: team.id },
+      orderBy: [{ name: "asc" }]
+    });
+    const attendant =
+      attendance.attendantIndex !== undefined
+        ? attendants[attendance.attendantIndex]
+        : null;
+    const queuedAt = new Date(
+      now.getTime() - (demoAttendances.length - index) * 75_000
+    );
+    const startedAt =
+      attendance.status === "IN_PROGRESS" || attendance.status === "FINISHED"
+        ? new Date(queuedAt.getTime() + 45_000)
+        : null;
+    const finishedAt =
+      attendance.status === "FINISHED" || attendance.status === "CANCELLED"
+        ? new Date(queuedAt.getTime() + 180_000)
+        : null;
+
+    await prisma.attendance.create({
+      data: {
+        customerName: attendance.customerName,
+        subject: attendance.subject,
+        teamId: team.id,
+        attendantId: attendant?.id ?? null,
+        status: attendance.status,
+        queuedAt,
+        startedAt,
+        finishedAt
       }
     });
-
-    const now = new Date();
-
-    for (const [index, attendance] of demoAttendances.entries()) {
-      const team = seededTeams.get(attendance.teamType);
-
-      if (!team) {
-        continue;
-      }
-
-      const attendants = await prisma.attendant.findMany({
-        where: { teamId: team.id },
-        orderBy: [{ name: "asc" }]
-      });
-      const attendant =
-        attendance.attendantIndex !== undefined
-          ? attendants[attendance.attendantIndex]
-          : null;
-      const queuedAt = new Date(
-        now.getTime() - (demoAttendances.length - index) * 75_000
-      );
-      const startedAt =
-        attendance.status === "IN_PROGRESS" || attendance.status === "FINISHED"
-          ? new Date(queuedAt.getTime() + 45_000)
-          : null;
-      const finishedAt =
-        attendance.status === "FINISHED" || attendance.status === "CANCELLED"
-          ? new Date(queuedAt.getTime() + 180_000)
-          : null;
-
-      await prisma.attendance.create({
-        data: {
-          customerName: attendance.customerName,
-          subject: attendance.subject,
-          teamId: team.id,
-          attendantId: attendant?.id ?? null,
-          status: attendance.status,
-          queuedAt,
-          startedAt,
-          finishedAt
-        }
-      });
-    }
   }
 }
 

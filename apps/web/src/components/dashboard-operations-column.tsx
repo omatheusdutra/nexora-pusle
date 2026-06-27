@@ -11,7 +11,7 @@ export default function DashboardOperationsColumn({
   loading: boolean;
 }) {
   return (
-    <div className="grid gap-4">
+    <div className="grid gap-3">
       <TeamDistributionChart />
       <AuditActivityPanel />
       <AttendantsPanel attendants={attendants} loading={loading} />

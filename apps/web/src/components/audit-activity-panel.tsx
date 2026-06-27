@@ -58,7 +58,7 @@ export function AuditActivityPanel() {
   });
 
   if (audit.isLoading) {
-    return <Skeleton className="h-[252px]" />;
+    return <Skeleton className="h-[228px]" />;
   }
 
   return (
@@ -67,9 +67,10 @@ export function AuditActivityPanel() {
       eyebrow="Eventos"
       icon={<Activity className="h-4 w-4" />}
       live
+      compact
     >
       {audit.data?.data.length ? (
-        <div className="grid max-h-[300px] gap-2 overflow-y-auto pr-1 nexora-scrollbar">
+        <div className="grid max-h-[250px] gap-2 overflow-y-auto pr-1 nexora-scrollbar">
           {audit.data.data.map((event) => (
             <AuditEventRow key={event.id} event={event} />
           ))}
@@ -87,8 +88,8 @@ function AuditEventRow({ event }: { event: AuditEventDto }) {
   const Icon = eventIcons[event.type];
 
   return (
-    <div className="grid grid-cols-[2rem_1fr] gap-3 rounded-md border border-white/10 bg-white/5 px-3 py-2.5">
-      <div className="mt-0.5 grid h-8 w-8 place-items-center rounded-md border border-white/10 bg-background/60 text-muted-foreground">
+    <div className="grid grid-cols-[2rem_1fr] gap-3 rounded-md border border-border bg-background/60 px-3 py-2.5 shadow-inset dark:border-white/10 dark:bg-white/5">
+      <div className="mt-0.5 grid h-8 w-8 place-items-center rounded-md border border-border bg-background/60 text-muted-foreground dark:border-white/10">
         <Icon className="h-4 w-4" />
       </div>
       <div className="min-w-0">

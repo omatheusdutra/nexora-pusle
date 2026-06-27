@@ -14,7 +14,7 @@ export default function DashboardCharts({
   queuesLoading: boolean;
 }) {
   return (
-    <div className="grid gap-4 xl:grid-cols-2">
+    <div className="grid gap-3 xl:grid-cols-2">
       <QueuesChart data={queues} loading={queuesLoading} />
       <LoadChart data={attendantsLoad} loading={attendantsLoading} />
     </div>

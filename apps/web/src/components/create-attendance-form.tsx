@@ -16,12 +16,12 @@ import { Input } from "./ui/input";
 
 const routePresets = [
   {
-    label: "Cartões",
+    label: "Cartoes",
     subject: SUBJECT_MATCHERS.CARDS,
     Icon: CreditCard
   },
   {
-    label: "Crédito",
+    label: "Credito",
     subject: SUBJECT_MATCHERS.LOANS,
     Icon: Landmark
   },
@@ -50,7 +50,7 @@ export function CreateAttendanceForm() {
       toast.success(
         result.result === "QUEUED"
           ? "Atendimento entrou na fila"
-          : "Atendimento atribuído"
+          : "Atendimento atribuido"
       );
       form.reset({
         customerName: "",
@@ -68,6 +68,7 @@ export function CreateAttendanceForm() {
       eyebrow="Entrada assistida"
       icon={<Sparkles className="h-4 w-4" />}
       live
+      compact
     >
       <form
         className="grid gap-3"
@@ -82,10 +83,10 @@ export function CreateAttendanceForm() {
               <button
                 key={preset.label}
                 type="button"
-                className={`grid h-12 place-items-center gap-1 rounded-md border px-2 py-1 text-xs font-semibold transition-all ${
+                className={`grid h-11 place-items-center gap-1 rounded-md border px-2 py-1 text-xs font-semibold transition-all ${
                   active
                     ? "border-primary/40 bg-primary/15 text-primary shadow-glow"
-                    : "border-white/10 bg-white/5 text-muted-foreground hover:bg-white/8 hover:text-foreground"
+                    : "border-border bg-background/60 text-muted-foreground hover:bg-card hover:text-foreground dark:border-white/10 dark:bg-white/5 dark:hover:bg-white/8"
                 }`}
                 onClick={() =>
                   form.setValue("subject", preset.subject, {
@@ -145,6 +146,11 @@ export function CreateAttendanceForm() {
           )}
           {mutation.isPending ? "Roteando..." : "Criar atendimento"}
         </Button>
+
+        <div className="flex items-center justify-between rounded-md border border-accent/15 bg-accent/8 px-3 py-2 text-[11px] text-muted-foreground">
+          <span>Roteamento Nexora ativo</span>
+          <span className="text-accent">SLA monitorado</span>
+        </div>
       </form>
     </DashboardPanel>
   );

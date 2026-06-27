@@ -26,7 +26,7 @@ export function TeamDistributionChart() {
   });
 
   if (attendances.isLoading) {
-    return <Skeleton className="h-[252px]" />;
+    return <Skeleton className="h-[228px]" />;
   }
 
   const counts = new Map<TeamType, number>(
@@ -65,9 +65,10 @@ export function TeamDistributionChart() {
       eyebrow="Mix operacional"
       icon={<PieChartIcon className="h-4 w-4" />}
       live
+      compact
     >
-      <div className="grid gap-4 sm:grid-cols-[160px_1fr] xl:grid-cols-1 2xl:grid-cols-[160px_1fr]">
-        <div className="relative h-40">
+      <div className="grid gap-3 sm:grid-cols-[140px_1fr] xl:grid-cols-1 2xl:grid-cols-[150px_1fr]">
+        <div className="relative h-36">
           <ResponsiveContainer width="100%" height="100%">
             <PieChart>
               <Pie
@@ -77,8 +78,8 @@ export function TeamDistributionChart() {
                 }))}
                 dataKey="value"
                 nameKey="name"
-                innerRadius={47}
-                outerRadius={70}
+                innerRadius={42}
+                outerRadius={64}
                 paddingAngle={4}
                 stroke="hsl(var(--background))"
                 strokeWidth={3}
@@ -116,7 +117,7 @@ export function TeamDistributionChart() {
           {chartData.map((item) => (
             <div
               key={item.teamType}
-              className="flex items-center justify-between gap-3 rounded-md border border-white/10 bg-white/5 px-3 py-2 text-sm"
+              className="flex items-center justify-between gap-3 rounded-md border border-border bg-background/60 px-3 py-1.5 text-sm dark:border-white/10 dark:bg-white/5"
             >
               <div className="flex min-w-0 items-center gap-2">
                 <span className={`h-2.5 w-2.5 rounded-full ${item.tone.dot}`} />
