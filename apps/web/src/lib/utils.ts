@@ -52,9 +52,50 @@ export function displayTeamName(teamName: string, teamType?: TeamType) {
   return "Relacionamento Geral";
 }
 
+export function teamTone(teamName: string, teamType?: TeamType) {
+  if (teamType === "CARDS" || teamName.toLowerCase().includes("cart")) {
+    return {
+      dot: "bg-primary",
+      text: "text-primary",
+      border: "border-primary/25",
+      background: "bg-primary/10",
+      chart: "hsl(var(--primary))"
+    };
+  }
+
+  if (teamType === "LOANS" || teamName.toLowerCase().includes("emprest")) {
+    return {
+      dot: "bg-violet",
+      text: "text-violet",
+      border: "border-violet/25",
+      background: "bg-violet/10",
+      chart: "hsl(var(--violet))"
+    };
+  }
+
+  return {
+    dot: "bg-accent",
+    text: "text-accent",
+    border: "border-accent/25",
+    background: "bg-accent/10",
+    chart: "hsl(var(--accent))"
+  };
+}
+
 export const professionalSubjects = [
   "Problemas com cartao",
+  "Contestacao de compra",
+  "Cartao bloqueado preventivamente",
+  "Segunda via de cartao",
+  "Compra nao reconhecida",
+  "Limite emergencial",
+  "Falha em pagamento por aproximacao",
   "Contratacao de emprestimo",
+  "Simulacao de credito pessoal",
+  "Analise de proposta PJ",
+  "Renegociacao de contrato",
+  "Antecipacao de parcelas",
+  "Revisao de taxa aprovada",
   "Atualizacao cadastral",
   "Alteracao de dados bancarios",
   "Duvida sobre aplicativo",

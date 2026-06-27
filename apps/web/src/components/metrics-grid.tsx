@@ -30,9 +30,9 @@ export function MetricsGrid({
 }) {
   if (loading || !summary) {
     return (
-      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4 2xl:grid-cols-8">
         {Array.from({ length: 8 }).map((_, index) => (
-          <Skeleton key={index} className="h-24" />
+          <Skeleton key={index} className="h-[104px]" />
         ))}
       </div>
     );
@@ -98,7 +98,7 @@ export function MetricsGrid({
   ];
 
   return (
-    <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+    <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4 2xl:grid-cols-8">
       {metrics.map((metric) => (
         <MetricCard
           key={metric.label}

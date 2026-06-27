@@ -13,6 +13,8 @@ export default {
         "muted-foreground": "hsl(var(--muted-foreground))",
         card: "hsl(var(--card))",
         "card-foreground": "hsl(var(--card-foreground))",
+        surface: "hsl(var(--surface))",
+        "surface-strong": "hsl(var(--surface-strong))",
         primary: "hsl(var(--primary))",
         "primary-foreground": "hsl(var(--primary-foreground))",
         accent: "hsl(var(--accent))",
@@ -29,8 +31,12 @@ export default {
       },
       boxShadow: {
         panel:
-          "0 20px 70px -45px rgb(14 165 233 / 0.65), 0 18px 44px -34px rgb(0 0 0 / 0.85)",
-        glow: "0 0 0 1px hsl(var(--border)), 0 0 42px -18px hsl(var(--glow))"
+          "inset 0 1px 0 rgb(255 255 255 / 0.06), 0 22px 80px -54px hsl(var(--panel-shadow)), 0 18px 48px -38px rgb(0 0 0 / 0.95)",
+        glow: "0 0 0 1px hsl(var(--panel-border)), 0 0 44px -20px hsl(var(--glow))",
+        neon:
+          "0 0 0 1px hsl(var(--panel-border)), 0 0 38px -22px hsl(var(--primary)), 0 0 72px -48px hsl(var(--violet))",
+        inset:
+          "inset 0 1px 0 rgb(255 255 255 / 0.08), inset 0 -1px 0 rgb(255 255 255 / 0.03)"
       },
       opacity: {
         6: "0.06",

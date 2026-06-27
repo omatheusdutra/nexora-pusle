@@ -50,7 +50,7 @@ export function CreateAttendanceForm() {
       toast.success(
         result.result === "QUEUED"
           ? "Atendimento entrou na fila"
-          : "Atendimento atribuido"
+          : "Atendimento atribuído"
       );
       form.reset({
         customerName: "",
@@ -67,9 +67,10 @@ export function CreateAttendanceForm() {
       title="Novo atendimento"
       eyebrow="Entrada assistida"
       icon={<Sparkles className="h-4 w-4" />}
+      live
     >
       <form
-        className="grid gap-4"
+        className="grid gap-3"
         onSubmit={form.handleSubmit((values) => mutation.mutate(values))}
       >
         <div className="grid grid-cols-3 gap-2">
@@ -81,7 +82,7 @@ export function CreateAttendanceForm() {
               <button
                 key={preset.label}
                 type="button"
-                className={`grid min-h-16 place-items-center gap-1 rounded-md border px-2 py-2 text-xs font-semibold transition-all ${
+                className={`grid h-12 place-items-center gap-1 rounded-md border px-2 py-1 text-xs font-semibold transition-all ${
                   active
                     ? "border-primary/40 bg-primary/15 text-primary shadow-glow"
                     : "border-white/10 bg-white/5 text-muted-foreground hover:bg-white/8 hover:text-foreground"
@@ -100,9 +101,10 @@ export function CreateAttendanceForm() {
           })}
         </div>
 
-        <label className="grid gap-1.5 text-sm font-medium">
+        <label className="grid gap-1.5 text-xs font-semibold uppercase tracking-[0.12em] text-muted-foreground">
           Cliente
           <Input
+            className="h-9 text-sm font-normal normal-case tracking-normal text-foreground"
             placeholder="Marina Teixeira"
             autoComplete="off"
             {...form.register("customerName")}
@@ -114,9 +116,10 @@ export function CreateAttendanceForm() {
           ) : null}
         </label>
 
-        <label className="grid gap-1.5 text-sm font-medium">
+        <label className="grid gap-1.5 text-xs font-semibold uppercase tracking-[0.12em] text-muted-foreground">
           Assunto
           <Input
+            className="h-9 text-sm font-normal normal-case tracking-normal text-foreground"
             list="nexora-subjects"
             placeholder="Selecione ou descreva o assunto"
             autoComplete="off"
@@ -134,9 +137,13 @@ export function CreateAttendanceForm() {
           ) : null}
         </label>
 
-        <Button type="submit" disabled={mutation.isPending} className="mt-1">
-          <Send className="h-4 w-4" />
-          {mutation.isPending ? "Roteando" : "Criar atendimento"}
+        <Button type="submit" disabled={mutation.isPending} className="mt-1 w-full">
+          {mutation.isPending ? (
+            <Sparkles className="h-4 w-4 animate-pulse" />
+          ) : (
+            <Send className="h-4 w-4" />
+          )}
+          {mutation.isPending ? "Roteando..." : "Criar atendimento"}
         </Button>
       </form>
     </DashboardPanel>

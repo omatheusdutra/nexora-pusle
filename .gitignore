@@ -7,4 +7,5 @@ coverage
 .vscode/
 .DS_Store
 *.log
+*.err
 apps/api/prisma/dev.db

@@ -42,8 +42,9 @@ export function AttendantsPanel({
       title="Atendentes"
       eyebrow="Workforce"
       icon={<UsersRound className="h-4 w-4" />}
+      live
     >
-      <div className="grid gap-3">
+      <div className="grid max-h-[430px] gap-3 overflow-y-auto pr-1 nexora-scrollbar">
         {attendants?.length ? (
           attendants.map((attendant) => (
             <AgentCard

@@ -3,7 +3,7 @@ import { Power } from "lucide-react";
 import { CapacityBar } from "./capacity-bar";
 import { Badge } from "./ui/badge";
 import { Button } from "./ui/button";
-import { displayTeamName, initialsFor } from "../lib/utils";
+import { cn, displayTeamName, initialsFor, teamTone } from "../lib/utils";
 
 export function AgentCard({
   attendant,
@@ -15,28 +15,46 @@ export function AgentCard({
   onToggle: () => void;
 }) {
   const full = attendant.currentLoad >= attendant.maxConcurrentAttendances;
+  const tone = teamTone(attendant.teamName, attendant.teamType);
+  const statusLabel = full ? "Lotado" : attendant.isOnline ? "Online" : "Offline";
 
   return (
-    <div className="group rounded-lg border border-white/10 bg-white/6 p-4 transition-all duration-200 hover:border-primary/30 hover:bg-white/8">
+    <div
+      className={cn(
+        "group rounded-lg border bg-white/6 p-3.5 shadow-inset transition-all duration-200 hover:bg-white/8",
+        full
+          ? "border-warning/30 shadow-[0_0_36px_-26px_hsl(var(--warning))]"
+          : "border-white/10 hover:border-primary/30"
+      )}
+    >
       <div className="flex items-start justify-between gap-3">
         <div className="flex min-w-0 items-center gap-3">
-          <div className="grid h-11 w-11 shrink-0 place-items-center rounded-md border border-white/10 bg-gradient-to-br from-primary/25 via-violet/15 to-accent/20 text-sm font-semibold text-foreground shadow-glow">
+          <div
+            className={cn(
+              "grid h-10 w-10 shrink-0 place-items-center rounded-md border bg-gradient-to-br text-sm font-semibold text-foreground shadow-glow",
+              tone.border,
+              tone.background
+            )}
+          >
             {initialsFor(attendant.name)}
           </div>
           <div className="min-w-0">
             <div className="truncate text-sm font-semibold">{attendant.name}</div>
-            <div className="truncate text-xs text-muted-foreground">
-              {displayTeamName(attendant.teamName, attendant.teamType)}
+            <div className="mt-0.5 flex min-w-0 items-center gap-2 text-xs text-muted-foreground">
+              <span className={cn("h-2 w-2 shrink-0 rounded-full", tone.dot)} />
+              <span className="truncate">
+                {displayTeamName(attendant.teamName, attendant.teamType)}
+              </span>
             </div>
           </div>
         </div>
-        <div className="flex shrink-0 items-center gap-2">
+        <div className="flex shrink-0 items-center gap-1.5">
           <Badge
             variant={
               full ? "warning" : attendant.isOnline ? "success" : "neutral"
             }
           >
-            {full ? "Lotado" : attendant.isOnline ? "Online" : "Offline"}
+            {statusLabel}
           </Badge>
           <Button
             size="icon"

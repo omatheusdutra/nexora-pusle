@@ -3,7 +3,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Ban, Check, Clock3 } from "lucide-react";
 import { toast } from "sonner";
 import { api } from "../lib/api";
-import { displayTeamName, initialsFor } from "../lib/utils";
+import { cn, displayTeamName, initialsFor, teamTone } from "../lib/utils";
 import { DashboardPanel } from "./dashboard-panel";
 import { StatusBadge } from "./status-badge";
 import { Button } from "./ui/button";
@@ -26,7 +26,7 @@ export function RecentActivityTable({
       toast.success(result.message);
     },
     onError: (error) => {
-      toast.error(error instanceof Error ? error.message : "Falha na acao");
+      toast.error(error instanceof Error ? error.message : "Falha na ação");
     }
   });
 
@@ -39,45 +39,49 @@ export function RecentActivityTable({
       title="Atendimentos recentes"
       eyebrow="Live feed"
       icon={<Clock3 className="h-4 w-4" />}
+      live
     >
         {rows?.length ? (
-          <div className="overflow-x-auto rounded-lg border border-white/10">
-            <table className="w-full min-w-[880px] border-separate border-spacing-0 text-sm">
-              <thead>
-                <tr className="bg-white/5 text-left text-xs uppercase tracking-[0.12em] text-muted-foreground">
-                  <th className="border-b border-white/10 px-4 py-3 font-semibold">
+          <div className="max-h-[430px] overflow-auto rounded-lg border border-white/10 nexora-scrollbar">
+            <table className="w-full min-w-[860px] border-separate border-spacing-0 text-sm">
+              <thead className="sticky top-0 z-10">
+                <tr className="bg-card/95 text-left text-[11px] uppercase tracking-[0.12em] text-muted-foreground backdrop-blur-xl">
+                  <th className="border-b border-white/10 px-3 py-2.5 font-semibold">
                     Cliente
                   </th>
-                  <th className="border-b border-white/10 px-4 py-3 font-semibold">
+                  <th className="border-b border-white/10 px-3 py-2.5 font-semibold">
                     Assunto
                   </th>
-                  <th className="border-b border-white/10 px-4 py-3 font-semibold">
+                  <th className="border-b border-white/10 px-3 py-2.5 font-semibold">
                     Time
                   </th>
-                  <th className="border-b border-white/10 px-4 py-3 font-semibold">
+                  <th className="border-b border-white/10 px-3 py-2.5 font-semibold">
                     Atendente
                   </th>
-                  <th className="border-b border-white/10 px-4 py-3 font-semibold">
+                  <th className="border-b border-white/10 px-3 py-2.5 font-semibold">
                     Status
                   </th>
-                  <th className="border-b border-white/10 px-4 py-3 text-right font-semibold">
+                  <th className="border-b border-white/10 px-3 py-2.5 text-right font-semibold">
                     Ações
                   </th>
                 </tr>
               </thead>
               <tbody>
-                {rows.map((row) => (
+                {rows.map((row) => {
+                  const tone = teamTone(row.teamName);
+
+                  return (
                   <tr
                     key={row.id}
-                    className="border-b border-white/8 transition-colors last:border-0 hover:bg-white/5"
+                    className="transition-colors hover:bg-white/5"
                   >
-                    <td className="px-4 py-3">
+                    <td className="border-b border-white/8 px-3 py-2.5">
                       <div className="flex min-w-0 items-center gap-3">
-                        <div className="grid h-9 w-9 shrink-0 place-items-center rounded-md border border-white/10 bg-primary/12 text-xs font-semibold text-primary">
+                        <div className="grid h-9 w-9 shrink-0 place-items-center rounded-md border border-white/10 bg-gradient-to-br from-primary/22 via-violet/14 to-accent/18 text-xs font-semibold text-foreground shadow-glow">
                           {initialsFor(row.customerName)}
                         </div>
                         <div className="min-w-0">
-                          <div className="max-w-52 truncate font-semibold">
+                          <div className="max-w-52 truncate font-semibold leading-5">
                             {row.customerName}
                           </div>
                           <div className="text-xs text-muted-foreground">
@@ -86,20 +90,21 @@ export function RecentActivityTable({
                         </div>
                       </div>
                     </td>
-                    <td className="px-4 py-3">
+                    <td className="border-b border-white/8 px-3 py-2.5">
                       <div className="max-w-64 truncate text-muted-foreground">
                         {row.subject}
                       </div>
                     </td>
-                    <td className="px-4 py-3">
-                      <div className="max-w-44 truncate">
+                    <td className="border-b border-white/8 px-3 py-2.5">
+                      <div className="flex max-w-44 items-center gap-2 truncate">
+                        <span className={cn("h-2.5 w-2.5 shrink-0 rounded-full", tone.dot)} />
                         {displayTeamName(row.teamName)}
                       </div>
                     </td>
-                    <td className="px-4 py-3 text-muted-foreground">
+                    <td className="border-b border-white/8 px-3 py-2.5 text-muted-foreground">
                       {row.attendantName ? (
                         <div className="flex min-w-0 items-center gap-2">
-                          <span className="grid h-7 w-7 shrink-0 place-items-center rounded-sm bg-white/8 text-[11px] font-semibold text-foreground">
+                          <span className="grid h-7 w-7 shrink-0 place-items-center rounded-full border border-white/10 bg-white/8 text-[11px] font-semibold text-foreground">
                             {initialsFor(row.attendantName)}
                           </span>
                           <span className="max-w-36 truncate">
@@ -110,16 +115,17 @@ export function RecentActivityTable({
                         <span className="text-muted-foreground">Em fila</span>
                       )}
                     </td>
-                    <td className="px-4 py-3">
+                    <td className="border-b border-white/8 px-3 py-2.5">
                       <StatusBadge status={row.status} />
                     </td>
-                    <td className="px-4 py-3 text-right">
+                    <td className="border-b border-white/8 px-3 py-2.5 text-right">
                       <div className="flex justify-end gap-2">
                         <Button
                           size="icon"
                           variant="ghost"
                           title="Finalizar"
                           aria-label="Finalizar"
+                          className="h-8 w-8 rounded-full border border-success/20 bg-success/8 text-success hover:bg-success/12"
                           disabled={
                             row.status !== "IN_PROGRESS" || mutation.isPending
                           }
@@ -134,6 +140,7 @@ export function RecentActivityTable({
                           variant="ghost"
                           title="Cancelar"
                           aria-label="Cancelar"
+                          className="h-8 w-8 rounded-full border border-destructive/20 bg-destructive/8 text-destructive hover:bg-destructive/12"
                           disabled={
                             !["IN_PROGRESS", "QUEUED"].includes(row.status) ||
                             mutation.isPending
@@ -147,7 +154,8 @@ export function RecentActivityTable({
                       </div>
                     </td>
                   </tr>
-                ))}
+                  );
+                })}
               </tbody>
             </table>
           </div>

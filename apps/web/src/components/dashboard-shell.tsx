@@ -9,6 +9,7 @@ import { LoadChart } from "./load-chart";
 import { MetricsGrid } from "./metrics-grid";
 import { QueuesChart } from "./queues-chart";
 import { RecentActivityTable } from "./recent-activity-table";
+import { TeamDistributionChart } from "./team-distribution-chart";
 
 export function DashboardShell({
   dark,
@@ -45,7 +46,7 @@ export function DashboardShell({
   return (
     <div className="min-h-screen">
       <AppSidebar />
-      <div className="min-w-0 lg:pl-72">
+      <div className="min-w-0 lg:pl-64">
         <AppHeader
           connected={connected}
           dark={dark}
@@ -53,12 +54,12 @@ export function DashboardShell({
           onRefresh={refreshAll}
         />
 
-        <main className="grid gap-5 px-4 py-5 sm:px-6 xl:px-8">
+        <main className="grid gap-4 px-4 py-4 sm:px-5 xl:px-6">
           <MetricsGrid summary={summary.data} loading={summary.isLoading} />
 
-          <section className="grid gap-5 2xl:grid-cols-[380px_1fr]">
+          <section className="grid gap-4 xl:grid-cols-[320px_minmax(0,1fr)] 2xl:grid-cols-[340px_minmax(0,1fr)]">
             <CreateAttendanceForm />
-            <div className="grid gap-5 xl:grid-cols-2">
+            <div className="grid gap-4 xl:grid-cols-2">
               <QueuesChart data={queues.data} loading={queues.isLoading} />
               <LoadChart
                 data={attendantsLoad.data}
@@ -67,11 +68,14 @@ export function DashboardShell({
             </div>
           </section>
 
-          <section className="grid gap-5 2xl:grid-cols-[430px_1fr]">
-            <AttendantsPanel
-              attendants={attendantsLoad.data}
-              loading={attendantsLoad.isLoading}
-            />
+          <section className="grid gap-4 xl:grid-cols-[360px_minmax(0,1fr)] 2xl:grid-cols-[400px_minmax(0,1fr)]">
+            <div className="grid gap-4">
+              <TeamDistributionChart />
+              <AttendantsPanel
+                attendants={attendantsLoad.data}
+                loading={attendantsLoad.isLoading}
+              />
+            </div>
             <RecentActivityTable
               rows={recentActivity.data}
               loading={recentActivity.isLoading}

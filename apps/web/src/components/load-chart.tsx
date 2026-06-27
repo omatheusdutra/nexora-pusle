@@ -18,9 +18,9 @@ import { Skeleton } from "./ui/skeleton";
 function loadColor(load: number, max: number) {
   const percent = max > 0 ? (load / max) * 100 : 0;
 
-  if (percent >= 100) return "hsl(var(--destructive))";
-  if (percent >= 67) return "hsl(var(--warning))";
-  return "hsl(var(--accent))";
+  if (percent >= 100) return "url(#loadHigh)";
+  if (percent >= 67) return "url(#loadMedium)";
+  return "url(#loadLow)";
 }
 
 export function LoadChart({
@@ -31,7 +31,7 @@ export function LoadChart({
   loading: boolean;
 }) {
   if (loading) {
-    return <Skeleton className="h-80" />;
+    return <Skeleton className="h-[286px]" />;
   }
 
   const chartData =
@@ -48,32 +48,48 @@ export function LoadChart({
       title="Carga dos atendentes"
       eyebrow="Capacidade"
       icon={<Gauge className="h-4 w-4" />}
-      className="min-h-80"
+      className="min-h-[286px]"
+      live
     >
         {chartData.length ? (
-          <div className="grid gap-4">
+          <div className="grid gap-3">
             <div className="flex flex-wrap gap-2 text-xs text-muted-foreground">
-              <span className="rounded-sm border border-accent/25 bg-accent/10 px-2 py-1">
+              <span className="rounded-full border border-accent/25 bg-accent/10 px-2 py-1">
                 Baixa
               </span>
-              <span className="rounded-sm border border-warning/25 bg-warning/10 px-2 py-1">
+              <span className="rounded-full border border-warning/25 bg-warning/10 px-2 py-1">
                 Média
               </span>
-              <span className="rounded-sm border border-destructive/25 bg-destructive/10 px-2 py-1">
+              <span className="rounded-full border border-destructive/25 bg-destructive/10 px-2 py-1">
                 Alta
               </span>
             </div>
-            <div className="h-72">
+            <div className="h-56">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart
                   data={chartData}
                   layout="vertical"
-                  margin={{ top: 8, right: 18, left: 8, bottom: 0 }}
+                  margin={{ top: 4, right: 14, left: 0, bottom: 0 }}
                 >
+                <defs>
+                  <linearGradient id="loadLow" x1="0" x2="1" y1="0" y2="0">
+                    <stop offset="0%" stopColor="hsl(var(--accent))" stopOpacity={0.72} />
+                    <stop offset="100%" stopColor="hsl(var(--success))" />
+                  </linearGradient>
+                  <linearGradient id="loadMedium" x1="0" x2="1" y1="0" y2="0">
+                    <stop offset="0%" stopColor="hsl(var(--violet))" stopOpacity={0.8} />
+                    <stop offset="100%" stopColor="hsl(var(--warning))" />
+                  </linearGradient>
+                  <linearGradient id="loadHigh" x1="0" x2="1" y1="0" y2="0">
+                    <stop offset="0%" stopColor="hsl(var(--warning))" />
+                    <stop offset="100%" stopColor="hsl(var(--destructive))" />
+                  </linearGradient>
+                </defs>
                 <CartesianGrid
                   strokeDasharray="3 3"
                   horizontal={false}
-                  opacity={0.22}
+                  stroke="hsl(var(--border))"
+                  opacity={0.28}
                 />
                 <XAxis
                   type="number"
@@ -82,6 +98,7 @@ export function LoadChart({
                   tickLine={false}
                   axisLine={false}
                   fontSize={12}
+                  stroke="hsl(var(--muted-foreground))"
                 />
                 <YAxis
                   type="category"
@@ -89,17 +106,24 @@ export function LoadChart({
                   tickLine={false}
                   axisLine={false}
                   fontSize={12}
-                  width={62}
+                  width={58}
+                  stroke="hsl(var(--muted-foreground))"
                 />
                 <Tooltip
-                  cursor={{ fill: "hsl(var(--muted))" }}
+                  cursor={{ fill: "hsl(var(--muted) / 0.35)" }}
                   contentStyle={{
                     background: "hsl(var(--card))",
                     border: "1px solid hsl(var(--border))",
-                    borderRadius: 8
+                    borderRadius: 8,
+                    color: "hsl(var(--foreground))"
                   }}
                 />
-                <Bar dataKey="carga" name="Carga atual" radius={[0, 6, 6, 0]}>
+                <Bar
+                  dataKey="carga"
+                  name="Carga atual"
+                  radius={[0, 8, 8, 0]}
+                  barSize={12}
+                >
                   {chartData.map((item) => (
                     <Cell
                       key={`${item.name}-${item.team}`}

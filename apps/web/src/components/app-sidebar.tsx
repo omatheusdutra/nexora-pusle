@@ -1,7 +1,6 @@
 import {
   BarChart3,
   Building2,
-  Gauge,
   Headphones,
   LayoutDashboard,
   Route,
@@ -10,6 +9,7 @@ import {
   Sparkles,
   UsersRound
 } from "lucide-react";
+import { BrandMark } from "./brand-mark";
 import { Badge } from "./ui/badge";
 
 const navItems = [
@@ -25,20 +25,18 @@ const navItems = [
 
 export function AppSidebar() {
   return (
-    <aside className="fixed inset-y-0 left-0 z-30 hidden w-72 border-r border-white/10 bg-black/20 px-4 py-5 backdrop-blur-2xl lg:flex lg:flex-col">
-      <div className="flex items-center gap-3 px-2">
-        <div className="grid h-11 w-11 place-items-center rounded-md border border-primary/30 bg-primary/12 text-primary shadow-glow">
-          <Gauge className="h-5 w-5" />
-        </div>
+    <aside className="fixed inset-y-0 left-0 z-30 hidden w-64 border-r border-white/10 bg-black/25 px-3 py-4 backdrop-blur-2xl lg:flex lg:flex-col">
+      <div className="flex items-center gap-3 rounded-lg border border-white/10 bg-white/5 p-3 shadow-inset">
+        <BrandMark />
         <div className="min-w-0">
-          <div className="truncate text-sm font-semibold">Nexora Pulse</div>
-          <div className="truncate text-xs text-muted-foreground">
+          <div className="truncate text-base font-semibold">Nexora Pulse</div>
+          <div className="truncate text-[11px] text-muted-foreground">
             AI Operations Command Center
           </div>
         </div>
       </div>
 
-      <nav className="mt-8 grid gap-1">
+      <nav className="mt-5 grid gap-1.5">
         {navItems.map((item) => {
           const Icon = item.Icon;
 
@@ -46,12 +44,15 @@ export function AppSidebar() {
             <button
               key={item.label}
               type="button"
-              className={`flex h-10 items-center gap-3 rounded-md px-3 text-left text-sm transition-all ${
+              className={`group relative flex h-9 items-center gap-3 overflow-hidden rounded-md px-3 text-left text-sm transition-all ${
                 item.active
-                  ? "border border-primary/25 bg-primary/12 text-foreground shadow-glow"
-                  : "text-muted-foreground hover:bg-white/7 hover:text-foreground"
+                  ? "border border-primary/30 bg-gradient-to-r from-primary/18 via-violet/10 to-transparent text-foreground shadow-glow"
+                  : "border border-transparent text-muted-foreground hover:border-white/10 hover:bg-white/7 hover:text-foreground"
               }`}
             >
+              {item.active ? (
+                <span className="absolute inset-y-1 left-0 w-0.5 rounded-full bg-primary shadow-[0_0_18px_hsl(var(--primary))]" />
+              ) : null}
               <Icon className="h-4 w-4" />
               <span className="truncate">{item.label}</span>
             </button>
@@ -59,7 +60,7 @@ export function AppSidebar() {
         })}
       </nav>
 
-      <div className="mt-auto rounded-lg border border-accent/20 bg-accent/8 p-4 shadow-glow">
+      <div className="mt-auto rounded-lg border border-accent/20 bg-gradient-to-br from-accent/12 via-white/5 to-violet/10 p-4 shadow-glow scanline">
         <div className="flex items-center justify-between gap-3">
           <div className="grid h-9 w-9 place-items-center rounded-md border border-accent/25 bg-accent/12 text-accent">
             <Sparkles className="h-4 w-4" />

@@ -1,6 +1,6 @@
 # Nexora Pulse
 
-AI Operations Command Center para distribuicao e monitoramento em tempo real de atendimentos. Este projeto implementa o desafio tecnico FlowPay Attendance Router, mas a experiencia visual do produto foi rebatizada como Nexora Pulse.
+AI Operations Command Center para distribuicao e monitoramento em tempo real de atendimentos. Este projeto implementa o desafio tecnico FlowPay Attendance Router, mas a experiencia visual do produto foi apresentada como Nexora Pulse, um command center SaaS fintech com foco em operacao, roteamento inteligente e acompanhamento de capacidade em tempo real.
 
 O produto roteia atendimentos por assunto, respeita capacidade maxima por atendente, usa fila FIFO por time quando a capacidade esta cheia e atualiza o dashboard via WebSocket sem refresh.
 
@@ -83,7 +83,7 @@ URLs:
 docker compose up --build
 ```
 
-O container da API executa migrations e seed antes de subir o servidor. O seed cria os 3 times, atendentes iniciais e uma amostra profissional de atendimentos quando o banco ainda esta vazio.
+O container da API executa migrations e seed antes de subir o servidor. O seed cria os 3 times, atendentes iniciais e uma amostra profissional de atendimentos de demo. Ele tambem remove registros antigos claramente genericos, como `Cliente Docker`, `Cliente Socket` e `Cliente Test`.
 
 ## Variaveis de ambiente
 
@@ -115,6 +115,25 @@ Se o pnpm estiver disponivel apenas via Corepack:
 ```bash
 corepack pnpm install
 corepack pnpm test
+```
+
+## Dados demo locais
+
+Para atualizar a massa demo profissional local:
+
+```bash
+pnpm db:seed
+```
+
+O seed e idempotente para o ambiente de desafio/demo: ele recria os atendimentos profissionais da Nexora Pulse quando a amostra esta incompleta e remove nomes genericos de seeds antigos.
+
+Para um reset completo local, apagando volumes do Postgres de desenvolvimento, use apenas em ambiente local/demo:
+
+```bash
+docker compose down -v
+docker compose up -d postgres redis
+pnpm db:migrate
+pnpm db:seed
 ```
 
 ## Endpoints principais
@@ -194,15 +213,25 @@ O frontend invalida as queries do TanStack Query ao receber eventos e recarrega 
 
 A primeira tela e o command center operacional Nexora Pulse:
 
-- sidebar com areas de operacao, qualidade, relatorios e configuracoes
-- header com busca global, status ao vivo, refresh, notificacoes, tema e perfil de supervisor
-- cards de resumo com iconografia, glow sutil e indicadores contextuais
-- modulo de criacao de atendimento com presets de rota
-- fila por time com barras e grafico responsivo
-- carga dos atendentes com cores por nivel de ocupacao
-- lista de atendentes com avatar, status e barra de capacidade
-- tabela de atendimentos recentes com badges, acoes e melhor overflow
+- sidebar compacta com BrandMark, areas de operacao, qualidade, relatorios e configuracoes
+- header com status ao vivo, websocket, busca global, refresh, notificacoes, tema e perfil de supervisor
+- KPIs compactos com iconografia, bordas luminosas, micro trends e glassmorphism
+- modulo de criacao de atendimento com presets de rota e feedback de roteamento
+- fila por time com ring/radar permanente, mesmo quando a fila esta zerada
+- carga dos atendentes com barras HUD e cores por nivel de ocupacao
+- painel de distribuicao por time com donut e legenda
+- lista de atendentes com avatar, status, alerta de lotacao e barra de capacidade
+- feed de atendimentos recentes com avatares, badges, acoes e scroll interno
 - indicador de conexao WebSocket, loading states, empty states, toasts e dark mode padrao
+
+Validacao visual recomendada:
+
+```txt
+http://localhost:5173
+1366x768, 1440x900, 1920x1080 e mobile basico
+```
+
+Em 1366x768, a primeira dobra deve mostrar sidebar, header, KPIs, entrada assistida, fila por time, carga dos atendentes e o inicio dos modulos inferiores.
 
 ## Testes
 

@@ -9,12 +9,20 @@ const attendantNames: Record<TeamType, string[]> = {
   OTHER: ["Gabriela Lima", "Henrique Duarte", "Iris Monteiro", "Marcelo Vieira"]
 };
 
+const legacySeedPrefixes = [
+  "Cliente Docker",
+  "Cliente Socket",
+  "Cliente Test",
+  "Cliente Demo",
+  "Cliente "
+];
+
 const demoAttendances: Array<{
   customerName: string;
   subject: string;
   teamType: TeamType;
   attendantIndex?: number;
-  status: "IN_PROGRESS" | "QUEUED" | "FINISHED";
+  status: "IN_PROGRESS" | "QUEUED" | "FINISHED" | "CANCELLED";
 }> = [
   {
     customerName: "Marina Teixeira",
@@ -24,11 +32,37 @@ const demoAttendances: Array<{
     status: "IN_PROGRESS"
   },
   {
-    customerName: "Aurora Agronegocios LTDA",
+    customerName: "Aurora Agronegócios LTDA",
     subject: "Compra nao reconhecida",
     teamType: "CARDS",
     attendantIndex: 1,
     status: "IN_PROGRESS"
+  },
+  {
+    customerName: "Camila Nogueira",
+    subject: "Contestacao de compra",
+    teamType: "CARDS",
+    attendantIndex: 2,
+    status: "IN_PROGRESS"
+  },
+  {
+    customerName: "Atlas Transportes",
+    subject: "Cartao bloqueado preventivamente",
+    teamType: "CARDS",
+    status: "QUEUED"
+  },
+  {
+    customerName: "Patrícia Lima",
+    subject: "Falha em pagamento por aproximacao",
+    teamType: "CARDS",
+    status: "QUEUED"
+  },
+  {
+    customerName: "Prisma Alimentos",
+    subject: "Limite emergencial",
+    teamType: "CARDS",
+    attendantIndex: 3,
+    status: "FINISHED"
   },
   {
     customerName: "Rafael Almeida",
@@ -45,22 +79,82 @@ const demoAttendances: Array<{
     status: "IN_PROGRESS"
   },
   {
-    customerName: "Camila Nogueira",
+    customerName: "Lucas Azevedo",
+    subject: "Simulacao de credito pessoal",
+    teamType: "LOANS",
+    attendantIndex: 2,
+    status: "IN_PROGRESS"
+  },
+  {
+    customerName: "Nova Safra Comercial",
+    subject: "Renegociacao de contrato",
+    teamType: "LOANS",
+    status: "QUEUED"
+  },
+  {
+    customerName: "Eduardo Martins",
+    subject: "Antecipacao de parcelas",
+    teamType: "LOANS",
+    attendantIndex: 3,
+    status: "FINISHED"
+  },
+  {
+    customerName: "Vértice Consultoria",
+    subject: "Revisao de taxa aprovada",
+    teamType: "LOANS",
+    status: "CANCELLED"
+  },
+  {
+    customerName: "Beatriz Carvalho",
     subject: "Atualizacao cadastral",
     teamType: "OTHER",
     attendantIndex: 0,
     status: "IN_PROGRESS"
   },
   {
-    customerName: "Atlas Transportes",
-    subject: "Solicitacao de comprovante",
+    customerName: "Prime Soluções Financeiras",
+    subject: "Alteracao de dados bancarios",
+    teamType: "OTHER",
+    attendantIndex: 1,
+    status: "IN_PROGRESS"
+  },
+  {
+    customerName: "Fernanda Ribeiro",
+    subject: "Duvida sobre aplicativo",
+    teamType: "OTHER",
+    attendantIndex: 2,
+    status: "IN_PROGRESS"
+  },
+  {
+    customerName: "Lumina Tech Serviços",
+    subject: "Suporte de acesso a conta",
     teamType: "OTHER",
     status: "QUEUED"
   },
   {
-    customerName: "Beatriz Carvalho",
-    subject: "Suporte de acesso a conta",
+    customerName: "Gustavo Moreira",
+    subject: "Solicitacao de comprovante",
     teamType: "OTHER",
+    attendantIndex: 3,
+    status: "FINISHED"
+  },
+  {
+    customerName: "Terranova Máquinas",
+    subject: "Atendimento prioritario",
+    teamType: "OTHER",
+    status: "CANCELLED"
+  },
+  {
+    customerName: "Henrique Farias",
+    subject: "Segunda via de cartao",
+    teamType: "CARDS",
+    attendantIndex: 0,
+    status: "FINISHED"
+  },
+  {
+    customerName: "Safra Norte Distribuidora",
+    subject: "Analise de proposta PJ",
+    teamType: "LOANS",
     attendantIndex: 1,
     status: "FINISHED"
   }
@@ -68,6 +162,13 @@ const demoAttendances: Array<{
 
 async function main() {
   const seededTeams = new Map<TeamType, { id: string }>();
+
+  await prisma.attendant.deleteMany({
+    where: {
+      name: "João Pereira",
+      attendances: { none: {} }
+    }
+  });
 
   for (const type of Object.values(TeamType)) {
     const team = await prisma.team.upsert({
@@ -106,12 +207,33 @@ async function main() {
     }
   }
 
-  const attendanceCount = await prisma.attendance.count();
+  await prisma.attendance.deleteMany({
+    where: {
+      OR: legacySeedPrefixes.map((prefix) => ({
+        customerName: { startsWith: prefix }
+      }))
+    }
+  });
 
-  if (attendanceCount === 0) {
+  const demoCustomerNames = demoAttendances.map(
+    (attendance) => attendance.customerName
+  );
+  const demoAttendanceCount = await prisma.attendance.count({
+    where: {
+      customerName: { in: demoCustomerNames }
+    }
+  });
+
+  if (demoAttendanceCount < demoAttendances.length) {
+    await prisma.attendance.deleteMany({
+      where: {
+        customerName: { in: demoCustomerNames }
+      }
+    });
+
     const now = new Date();
 
-    for (const attendance of demoAttendances) {
+    for (const [index, attendance] of demoAttendances.entries()) {
       const team = seededTeams.get(attendance.teamType);
 
       if (!team) {
@@ -126,9 +248,16 @@ async function main() {
         attendance.attendantIndex !== undefined
           ? attendants[attendance.attendantIndex]
           : null;
+      const queuedAt = new Date(
+        now.getTime() - (demoAttendances.length - index) * 75_000
+      );
       const startedAt =
         attendance.status === "IN_PROGRESS" || attendance.status === "FINISHED"
-          ? now
+          ? new Date(queuedAt.getTime() + 45_000)
+          : null;
+      const finishedAt =
+        attendance.status === "FINISHED" || attendance.status === "CANCELLED"
+          ? new Date(queuedAt.getTime() + 180_000)
           : null;
 
       await prisma.attendance.create({
@@ -138,9 +267,9 @@ async function main() {
           teamId: team.id,
           attendantId: attendant?.id ?? null,
           status: attendance.status,
-          queuedAt: now,
+          queuedAt,
           startedAt,
-          finishedAt: attendance.status === "FINISHED" ? now : null
+          finishedAt
         }
       });
     }
