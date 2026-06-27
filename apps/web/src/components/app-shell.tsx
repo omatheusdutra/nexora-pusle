@@ -1,6 +1,7 @@
 import { Outlet, useNavigate } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
+import { toast } from "sonner";
 import { AppHeader } from "./app-header";
 import { AppSidebar } from "./app-sidebar";
 import { useRealtimeInvalidation } from "../hooks/use-realtime";
@@ -41,6 +42,7 @@ export function AppShell({
 
   const refreshAll = () => {
     void queryClient.invalidateQueries();
+    toast.success("Dados atualizados");
   };
 
   return (

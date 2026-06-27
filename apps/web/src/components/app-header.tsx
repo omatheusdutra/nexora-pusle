@@ -82,6 +82,7 @@ export function AppHeader({
               size="icon"
               title="Ajustes"
               aria-label="Ajustes"
+              onClick={() => navigate("/settings")}
             >
               <SlidersHorizontal className="h-4 w-4" />
             </Button>
@@ -99,9 +100,10 @@ export function AppHeader({
               type="button"
               variant="outline"
               size="icon"
-              title="Notificacoes"
-              aria-label="Notificacoes"
+              title="Relatórios de alertas"
+              aria-label="Relatórios de alertas"
               className="relative"
+              onClick={() => navigate("/reports")}
             >
               <Bell className="h-4 w-4" />
               <span className="absolute right-1.5 top-1.5 h-2 w-2 rounded-full bg-warning shadow-[0_0_12px_hsl(var(--warning))]" />

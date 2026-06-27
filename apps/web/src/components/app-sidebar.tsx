@@ -9,9 +9,11 @@ import {
   Settings,
   ShieldCheck,
   Sparkles,
+  UserPlus,
   UsersRound
 } from "lucide-react";
 import { NavLink } from "react-router-dom";
+import { useAuth } from "../auth/auth-context";
 import { BrandMark } from "./brand-mark";
 import { Badge } from "./ui/badge";
 import { Button } from "./ui/button";
@@ -25,7 +27,8 @@ const navItems = [
   { label: "Clientes", path: "/clients", Icon: Building2 },
   { label: "Relatorios", path: "/reports", Icon: BarChart3 },
   { label: "Qualidade", path: "/quality", Icon: ShieldCheck },
-  { label: "Configuracoes", path: "/settings", Icon: Settings }
+  { label: "Configuracoes", path: "/settings", Icon: Settings },
+  { label: "Usuarios", path: "/users", Icon: UserPlus, adminOnly: true }
 ];
 
 export function AppSidebar({
@@ -35,7 +38,11 @@ export function AppSidebar({
   collapsed: boolean;
   onToggleCollapsed: () => void;
 }) {
+  const { user } = useAuth();
   const ToggleIcon = collapsed ? PanelLeftOpen : PanelLeftClose;
+  const visibleNavItems = navItems.filter(
+    (item) => !item.adminOnly || user?.role === "ADMIN"
+  );
 
   return (
     <aside
@@ -75,7 +82,7 @@ export function AppSidebar({
       </div>
 
       <nav className="mt-7 grid gap-1.5">
-        {navItems.map((item) => {
+        {visibleNavItems.map((item) => {
           const Icon = item.Icon;
 
           return (

@@ -15,6 +15,7 @@ import { QualityPage } from "./pages/quality-page";
 import { QueuesPage } from "./pages/queues-page";
 import { ReportsPage } from "./pages/reports-page";
 import { SettingsPage } from "./pages/settings-page";
+import { UsersPage } from "./pages/users-page";
 
 function getInitialTheme() {
   if (typeof window === "undefined") {
@@ -64,6 +65,7 @@ export default function App() {
                 <Route path="reports" element={<ReportsPage />} />
                 <Route path="quality" element={<QualityPage />} />
                 <Route path="settings" element={<SettingsPage />} />
+                <Route path="users" element={<UsersPage />} />
                 <Route path="*" element={<Navigate to="/dashboard" replace />} />
               </Route>
             </Route>

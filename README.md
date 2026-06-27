@@ -100,6 +100,8 @@ Papéis disponíveis:
 - `ADMIN`: acessa tudo, cria usuários, cria atendentes e altera status de atendentes.
 - `SUPERVISOR`: acessa dashboard, filas, atendentes, clientes, relatórios, qualidade e fluxo operacional de atendimentos.
 
+No frontend, o menu `Usuários` aparece apenas para `ADMIN` e permite cadastrar novos supervisores.
+
 Credenciais demo locais:
 
 ```txt
@@ -195,6 +197,7 @@ Rotas disponíveis:
 - `/reports`
 - `/quality`
 - `/settings`
+- `/users` somente `ADMIN`
 
 Validação visual recomendada:
 

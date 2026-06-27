@@ -6,23 +6,6 @@ import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
 import { useAuth } from "../auth/auth-context";
 
-const demoAccounts = [
-  {
-    label: "Admin",
-    name: "Lucas Almeida",
-    email: "admin@nexora.local",
-    password: "Admin@12345",
-    role: "ADMIN"
-  },
-  {
-    label: "Supervisor",
-    name: "Mariana Costa",
-    email: "supervisor@nexora.local",
-    password: "Supervisor@12345",
-    role: "SUPERVISOR"
-  }
-] as const;
-
 export function LoginPage() {
   const { login, isLoggingIn } = useAuth();
   const navigate = useNavigate();
@@ -31,8 +14,8 @@ export function LoginPage() {
     const state = location.state as { from?: { pathname?: string } } | null;
     return state?.from?.pathname ?? "/dashboard";
   }, [location.state]);
-  const [email, setEmail] = useState<string>(demoAccounts[0].email);
-  const [password, setPassword] = useState<string>(demoAccounts[0].password);
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
 
   const submit = async (event: FormEvent<HTMLFormElement>) => {
@@ -137,36 +120,8 @@ export function LoginPage() {
             </Button>
           </form>
 
-          <div className="mt-6 rounded-md border border-white/10 bg-black/20 p-3">
-            <div className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
-              Credenciais demo
-            </div>
-            <div className="mt-3 grid gap-2">
-              {demoAccounts.map((account) => (
-                <button
-                  key={account.email}
-                  type="button"
-                  className="rounded-md border border-white/10 bg-white/[0.04] p-3 text-left transition hover:border-emerald-300/50 hover:bg-emerald-300/10"
-                  onClick={() => {
-                    setEmail(account.email);
-                    setPassword(account.password);
-                    setError(null);
-                  }}
-                >
-                  <span className="flex items-center justify-between gap-3">
-                    <span className="text-sm font-semibold text-white">
-                      {account.label}
-                    </span>
-                    <span className="rounded border border-emerald-300/30 px-1.5 py-0.5 text-[10px] font-semibold text-emerald-100">
-                      Preencher demo
-                    </span>
-                  </span>
-                  <span className="mt-1 block text-xs text-slate-300">
-                    {account.email} / {account.password}
-                  </span>
-                </button>
-              ))}
-            </div>
+          <div className="mt-6 rounded-md border border-white/10 bg-black/20 px-3 py-2.5 text-xs leading-5 text-slate-300">
+            Acesso restrito a usuários operacionais autorizados.
           </div>
         </div>
       </section>
