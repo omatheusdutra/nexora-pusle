@@ -20,12 +20,27 @@ const envSchema = z.object({
         .map((origin) => origin.trim())
         .filter(Boolean)
     ),
+  WEB_ORIGIN: z.string().url().default("http://localhost:5174"),
+  AUTH_SECRET: z.string().min(32).optional(),
+  AUTH_COOKIE_NAME: z.string().default("nexora_session"),
+  AUTH_SESSION_TTL_HOURS: z.coerce.number().positive().default(8),
   RATE_LIMIT_MAX: z.coerce.number().int().positive().default(120),
   RATE_LIMIT_WINDOW: z.string().default("1 minute")
 });
 
-export type Env = z.infer<typeof envSchema>;
+type ParsedEnv = z.infer<typeof envSchema>;
+export type Env = Omit<ParsedEnv, "AUTH_SECRET"> & { AUTH_SECRET: string };
 
 export function loadEnv(): Env {
-  return envSchema.parse(process.env);
+  const env = envSchema.parse(process.env);
+
+  if (env.NODE_ENV === "production" && !env.AUTH_SECRET) {
+    throw new Error("AUTH_SECRET is required in production");
+  }
+
+  return {
+    ...env,
+    AUTH_SECRET:
+      env.AUTH_SECRET ?? "nexora-pulse-development-secret-change-me"
+  };
 }

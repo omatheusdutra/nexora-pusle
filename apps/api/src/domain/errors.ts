@@ -32,3 +32,21 @@ export class ConflictError extends AppError {
     });
   }
 }
+
+export class UnauthorizedError extends AppError {
+  constructor(message = "Authentication required") {
+    super(message, {
+      statusCode: 401,
+      code: "UNAUTHENTICATED"
+    });
+  }
+}
+
+export class ForbiddenError extends AppError {
+  constructor(message = "Insufficient permissions") {
+    super(message, {
+      statusCode: 403,
+      code: "FORBIDDEN"
+    });
+  }
+}

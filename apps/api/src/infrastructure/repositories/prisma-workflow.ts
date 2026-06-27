@@ -7,6 +7,7 @@ import type {
   AttendantLoadDto,
   AttendanceDto,
   AttendanceQuery,
+  AuthUserDto,
   CreateAttendanceInput,
   CreateAttendantInput,
   DashboardSummaryDto,
@@ -17,6 +18,7 @@ import type {
   RouteAttendanceResult,
   TeamDto,
   TeamType,
+  UserStatus,
   UpdateAttendantStatusInput
 } from "@flowpay/shared";
 import { Prisma, PrismaClient } from "@prisma/client";
@@ -29,6 +31,9 @@ import type {
   MetricsQueries,
   RealtimePublisher,
   TeamQueries,
+  CreateUserRecordInput,
+  UserRecord,
+  UserRepository,
   WorkflowEvent,
   WorkflowResult
 } from "../../application/contracts";
@@ -53,6 +58,7 @@ type LoadedAttendant = Prisma.AttendantGetPayload<{
   include: typeof attendantInclude;
 }>;
 type LoadedTeam = Prisma.TeamGetPayload<Record<string, never>>;
+type LoadedUser = Prisma.UserGetPayload<Record<string, never>>;
 
 export class PrismaWorkflow
   implements
@@ -61,7 +67,8 @@ export class PrismaWorkflow
     TeamQueries,
     DashboardQueries,
     AuditQueries,
-    MetricsQueries
+    MetricsQueries,
+    UserRepository
 {
   private readonly subjectRouter = new SubjectRouter();
   private readonly distributionPolicy = new DistributionPolicy();
@@ -792,6 +799,42 @@ export class PrismaWorkflow
     };
   }
 
+  async findByEmail(email: string): Promise<UserRecord | null> {
+    const user = await this.prisma.user.findUnique({
+      where: { email }
+    });
+
+    return user ? this.toUserRecord(user) : null;
+  }
+
+  async findById(id: string): Promise<UserRecord | null> {
+    const user = await this.prisma.user.findUnique({
+      where: { id }
+    });
+
+    return user ? this.toUserRecord(user) : null;
+  }
+
+  async updateLastLogin(id: string, date: Date): Promise<void> {
+    await this.prisma.user.update({
+      where: { id },
+      data: { lastLoginAt: date }
+    });
+  }
+
+  async createUser(input: CreateUserRecordInput): Promise<AuthUserDto> {
+    const user = await this.prisma.user.create({
+      data: {
+        name: input.name,
+        email: input.email,
+        passwordHash: input.passwordHash,
+        role: input.role
+      }
+    });
+
+    return this.toAuthUserDto(user);
+  }
+
   private async assignNextQueued(tx: PrismaTransaction, teamId: string) {
     const nextQueued = await tx.attendance.findFirst({
       where: { teamId, status: "QUEUED" },
@@ -1052,6 +1095,26 @@ export class PrismaWorkflow
       createdAt: event.createdAt.toISOString()
     };
   }
+
+  private toAuthUserDto(user: LoadedUser): AuthUserDto {
+    return {
+      id: user.id,
+      name: user.name,
+      email: user.email,
+      role: user.role
+    };
+  }
+
+  private toUserRecord(user: LoadedUser): UserRecord {
+    return {
+      ...this.toAuthUserDto(user),
+      passwordHash: user.passwordHash,
+      status: user.status as UserStatus,
+      lastLoginAt: user.lastLoginAt?.toISOString() ?? null,
+      createdAt: user.createdAt.toISOString(),
+      updatedAt: user.updatedAt.toISOString()
+    };
+  }
 }
 
 export function createPrismaContainer(
@@ -1067,6 +1130,7 @@ export function createPrismaContainer(
     dashboardQueries: workflow,
     auditQueries: workflow,
     metricsQueries: workflow,
+    userRepository: workflow,
     realtime
   };
 }

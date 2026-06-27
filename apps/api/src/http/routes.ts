@@ -1,14 +1,28 @@
-import type { FastifyInstance } from "fastify";
+import type { FastifyInstance, FastifyRequest } from "fastify";
 import {
   auditEventQuerySchema,
   attendanceQuerySchema,
+  createUserSchema,
   createAttendanceSchema,
   createAttendantSchema,
+  loginSchema,
   updateAttendantStatusSchema
 } from "@flowpay/shared";
-import type { OperationalMetricsDto } from "@flowpay/shared";
+import type {
+  AuthUserDto,
+  OperationalMetricsDto,
+  UserRole
+} from "@flowpay/shared";
 import { z } from "zod";
 import type { AppContainer } from "../application/contracts";
+import { hashPassword, verifyPassword } from "../auth/password";
+import type { AuthSessionConfig } from "../auth/session";
+import {
+  createSessionToken,
+  serializeClearSessionCookie,
+  serializeSessionCookie,
+  verifySessionCookie
+} from "../auth/session";
 import { ListAuditEventsUseCase } from "../application/use-cases/audit-use-cases";
 import {
   CancelAttendanceUseCase,
@@ -29,7 +43,12 @@ import {
   GetRecentActivityUseCase
 } from "../application/use-cases/dashboard-use-cases";
 import { GetOperationalMetricsUseCase } from "../application/use-cases/metrics-use-cases";
-import { NotFoundError } from "../domain/errors";
+import {
+  ConflictError,
+  ForbiddenError,
+  NotFoundError,
+  UnauthorizedError
+} from "../domain/errors";
 import {
   auditEventQueryJsonSchema,
   attendanceQueryJsonSchema,
@@ -44,9 +63,38 @@ const recentQuery = z.object({
   limit: z.coerce.number().int().min(1).max(50).default(15)
 });
 
+declare module "fastify" {
+  interface FastifyRequest {
+    authUser?: AuthUserDto;
+  }
+}
+
+const loginJsonSchema = {
+  type: "object",
+  required: ["email", "password"],
+  properties: {
+    email: { type: "string", format: "email" },
+    password: { type: "string", minLength: 1 }
+  },
+  additionalProperties: false
+};
+
+const createUserJsonSchema = {
+  type: "object",
+  required: ["name", "email", "password", "role"],
+  properties: {
+    name: { type: "string", minLength: 2, maxLength: 120 },
+    email: { type: "string", format: "email" },
+    password: { type: "string", minLength: 10, maxLength: 160 },
+    role: { type: "string", enum: ["ADMIN", "SUPERVISOR"] }
+  },
+  additionalProperties: false
+};
+
 export async function registerRoutes(
   app: FastifyInstance,
   container: AppContainer,
+  authConfig: AuthSessionConfig,
   readiness: () => Promise<{ ok: boolean; checks: Record<string, boolean> }>
 ) {
   const createAttendance = new CreateAttendanceUseCase(
@@ -90,6 +138,43 @@ export async function registerRoutes(
   const operationalMetrics = new GetOperationalMetricsUseCase(
     container.metricsQueries
   );
+  const toAuthUser = (user: {
+    id: string;
+    name: string;
+    email: string;
+    role: UserRole;
+  }): AuthUserDto => ({
+    id: user.id,
+    name: user.name,
+    email: user.email,
+    role: user.role
+  });
+  const requireAuth = async (request: FastifyRequest) => {
+    const sessionUser = verifySessionCookie(request.headers.cookie, authConfig);
+
+    if (!sessionUser) {
+      throw new UnauthorizedError();
+    }
+
+    const user = await container.userRepository.findById(sessionUser.id);
+
+    if (!user || user.status !== "ACTIVE") {
+      throw new UnauthorizedError();
+    }
+
+    request.authUser = toAuthUser(user);
+  };
+  const requireRole =
+    (...roles: UserRole[]) =>
+    async (request: FastifyRequest) => {
+      await requireAuth(request);
+
+      if (!request.authUser || !roles.includes(request.authUser.role)) {
+        throw new ForbiddenError();
+      }
+    };
+  const authenticated = { preHandler: requireAuth };
+  const adminOnly = { preHandler: requireRole("ADMIN") };
 
   app.get(
     "/",
@@ -134,9 +219,97 @@ export async function registerRoutes(
     }
   );
 
+  app.post(
+    "/api/v1/auth/login",
+    {
+      config: {
+        rateLimit: {
+          max: 5,
+          timeWindow: "1 minute"
+        }
+      },
+      schema: {
+        tags: ["Auth"],
+        body: loginJsonSchema
+      }
+    },
+    async (request, reply) => {
+      const input = loginSchema.parse(request.body);
+      const user = await container.userRepository.findByEmail(input.email);
+      const validPassword = user
+        ? await verifyPassword(input.password, user.passwordHash)
+        : false;
+
+      if (!user || user.status !== "ACTIVE" || !validPassword) {
+        throw new UnauthorizedError("Credenciais inválidas");
+      }
+
+      await container.userRepository.updateLastLogin(user.id, new Date());
+      const authUser = toAuthUser(user);
+      const token = createSessionToken(authUser, authConfig);
+
+      return reply
+        .header("Set-Cookie", serializeSessionCookie(token, authConfig))
+        .send({ user: authUser });
+    }
+  );
+
+  app.get(
+    "/api/v1/auth/me",
+    {
+      ...authenticated,
+      schema: {
+        tags: ["Auth"]
+      }
+    },
+    async (request) => ({ user: request.authUser })
+  );
+
+  app.post(
+    "/api/v1/auth/logout",
+    {
+      schema: {
+        tags: ["Auth"]
+      }
+    },
+    async (_request, reply) =>
+      reply
+        .header("Set-Cookie", serializeClearSessionCookie(authConfig))
+        .send({ ok: true })
+  );
+
+  app.post(
+    "/api/v1/users",
+    {
+      ...adminOnly,
+      schema: {
+        tags: ["Users"],
+        body: createUserJsonSchema
+      }
+    },
+    async (request, reply) => {
+      const input = createUserSchema.parse(request.body);
+      const existingUser = await container.userRepository.findByEmail(
+        input.email
+      );
+
+      if (existingUser) {
+        throw new ConflictError("User e-mail already exists");
+      }
+
+      const user = await container.userRepository.createUser({
+        ...input,
+        passwordHash: await hashPassword(input.password)
+      });
+
+      return reply.status(201).send({ user });
+    }
+  );
+
   app.get(
     "/api/v1/teams",
     {
+      ...authenticated,
       schema: {
         tags: ["Teams"]
       }
@@ -147,6 +320,7 @@ export async function registerRoutes(
   app.get(
     "/api/v1/attendants",
     {
+      ...authenticated,
       schema: {
         tags: ["Attendants"]
       }
@@ -157,6 +331,7 @@ export async function registerRoutes(
   app.post(
     "/api/v1/attendants",
     {
+      ...adminOnly,
       schema: {
         tags: ["Attendants"],
         body: createAttendantJsonSchema
@@ -172,6 +347,7 @@ export async function registerRoutes(
   app.patch(
     "/api/v1/attendants/:id/status",
     {
+      ...adminOnly,
       schema: {
         tags: ["Attendants"],
         params: idParamSchema,
@@ -188,6 +364,7 @@ export async function registerRoutes(
   app.post(
     "/api/v1/attendances",
     {
+      ...authenticated,
       schema: {
         tags: ["Attendances"],
         body: createAttendanceJsonSchema
@@ -203,6 +380,7 @@ export async function registerRoutes(
   app.get(
     "/api/v1/attendances",
     {
+      ...authenticated,
       schema: {
         tags: ["Attendances"],
         querystring: attendanceQueryJsonSchema
@@ -217,6 +395,7 @@ export async function registerRoutes(
   app.get(
     "/api/v1/attendances/:id",
     {
+      ...authenticated,
       schema: {
         tags: ["Attendances"],
         params: idParamSchema
@@ -237,6 +416,7 @@ export async function registerRoutes(
   app.patch(
     "/api/v1/attendances/:id/finish",
     {
+      ...authenticated,
       schema: {
         tags: ["Attendances"],
         params: idParamSchema
@@ -251,6 +431,7 @@ export async function registerRoutes(
   app.patch(
     "/api/v1/attendances/:id/cancel",
     {
+      ...authenticated,
       schema: {
         tags: ["Attendances"],
         params: idParamSchema
@@ -265,6 +446,7 @@ export async function registerRoutes(
   app.get(
     "/api/v1/dashboard/summary",
     {
+      ...authenticated,
       schema: {
         tags: ["Dashboard"]
       }
@@ -275,6 +457,7 @@ export async function registerRoutes(
   app.get(
     "/api/v1/dashboard/queues",
     {
+      ...authenticated,
       schema: {
         tags: ["Dashboard"]
       }
@@ -285,6 +468,7 @@ export async function registerRoutes(
   app.get(
     "/api/v1/dashboard/attendants-load",
     {
+      ...authenticated,
       schema: {
         tags: ["Dashboard"]
       }
@@ -295,6 +479,7 @@ export async function registerRoutes(
   app.get(
     "/api/v1/dashboard/recent-activity",
     {
+      ...authenticated,
       schema: {
         tags: ["Dashboard"],
         querystring: {
@@ -314,6 +499,7 @@ export async function registerRoutes(
   app.get(
     "/api/v1/audit-events",
     {
+      ...authenticated,
       schema: {
         tags: ["Audit"],
         querystring: auditEventQueryJsonSchema
@@ -328,6 +514,7 @@ export async function registerRoutes(
   app.get(
     "/api/v1/metrics",
     {
+      ...authenticated,
       schema: {
         tags: ["Metrics"]
       }

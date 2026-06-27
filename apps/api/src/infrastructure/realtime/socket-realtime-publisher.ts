@@ -17,6 +17,7 @@ export class SocketRealtimePublisher implements RealtimePublisher {
       corsOrigin: string | string[];
       redisUrl?: string;
       logger?: Pick<Console, "warn">;
+      authenticate?: (cookieHeader: string | undefined) => boolean | Promise<boolean>;
     }
   ) {
     this.io = new SocketServer(server, {
@@ -26,6 +27,21 @@ export class SocketRealtimePublisher implements RealtimePublisher {
       },
       path: "/socket.io"
     });
+
+    if (options.authenticate) {
+      this.io.use(async (socket, next) => {
+        const authenticated = await options.authenticate?.(
+          socket.handshake.headers.cookie
+        );
+
+        if (!authenticated) {
+          next(new Error("Unauthorized"));
+          return;
+        }
+
+        next();
+      });
+    }
 
     this.io.on("connection", (socket) => {
       socket.emit("dashboard.updated", { connected: true });

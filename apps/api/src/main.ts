@@ -1,5 +1,7 @@
 import { createClient } from "redis";
 import { buildApp } from "./app";
+import type { AuthSessionConfig } from "./auth/session";
+import { verifySessionCookie } from "./auth/session";
 import { loadEnv } from "./config/env";
 import { createPrismaClient } from "./infrastructure/database/prisma";
 import { createPrismaContainer } from "./infrastructure/repositories/prisma-workflow";
@@ -8,6 +10,14 @@ import { SocketRealtimePublisher } from "./infrastructure/realtime/socket-realti
 const env = loadEnv();
 const prisma = createPrismaClient();
 const realtime = new SocketRealtimePublisher();
+const corsOrigin = Array.from(new Set([...env.CORS_ORIGIN, env.WEB_ORIGIN]));
+const auth: AuthSessionConfig = {
+  secret: env.AUTH_SECRET,
+  cookieName: env.AUTH_COOKIE_NAME,
+  ttlHours: env.AUTH_SESSION_TTL_HOURS,
+  secure: env.NODE_ENV === "production",
+  sameSite: "lax"
+};
 
 async function readiness() {
   const checks: Record<string, boolean> = {
@@ -44,17 +54,19 @@ async function readiness() {
 async function main() {
   const app = await buildApp({
     container: createPrismaContainer(prisma, realtime),
-    corsOrigin: env.CORS_ORIGIN,
+    corsOrigin,
     logger: { level: env.LOG_LEVEL },
     rateLimitMax: env.RATE_LIMIT_MAX,
     rateLimitWindow: env.RATE_LIMIT_WINDOW,
+    auth,
     readiness
   });
 
   await realtime.attach(app.server, {
-    corsOrigin: env.CORS_ORIGIN,
+    corsOrigin,
     redisUrl: env.REDIS_URL,
-    logger: app.log
+    logger: app.log,
+    authenticate: (cookieHeader) => Boolean(verifySessionCookie(cookieHeader, auth))
   });
 
   const close = async () => {

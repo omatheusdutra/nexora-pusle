@@ -12,7 +12,8 @@ export function useRealtimeInvalidation() {
   useEffect(() => {
     const socket = io(SOCKET_URL, {
       path: "/socket.io",
-      transports: ["websocket", "polling"]
+      transports: ["websocket", "polling"],
+      withCredentials: true
     });
 
     const invalidateDashboard = () => {

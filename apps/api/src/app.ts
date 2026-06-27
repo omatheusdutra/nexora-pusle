@@ -5,6 +5,7 @@ import swagger from "@fastify/swagger";
 import swaggerUi from "@fastify/swagger-ui";
 import fastify, { type FastifyInstance } from "fastify";
 import type { AppContainer } from "./application/contracts";
+import type { AuthSessionConfig } from "./auth/session";
 import { registerErrorHandler } from "./http/error-handler";
 import { registerRoutes } from "./http/routes";
 
@@ -14,6 +15,7 @@ export interface BuildAppOptions {
   logger?: boolean | { level: string };
   rateLimitMax?: number;
   rateLimitWindow?: string;
+  auth?: Partial<AuthSessionConfig>;
   readiness?: () => Promise<{ ok: boolean; checks: Record<string, boolean> }>;
 }
 
@@ -25,6 +27,13 @@ export async function buildApp(
     genReqId: (request) =>
       request.headers["x-request-id"]?.toString() ?? crypto.randomUUID()
   });
+  const authConfig: AuthSessionConfig = {
+    secret: options.auth?.secret ?? "nexora-pulse-test-secret-change-me",
+    cookieName: options.auth?.cookieName ?? "nexora_session",
+    ttlHours: options.auth?.ttlHours ?? 8,
+    secure: options.auth?.secure ?? process.env.NODE_ENV === "production",
+    sameSite: options.auth?.sameSite ?? "lax"
+  };
 
   await app.register(helmet, {
     contentSecurityPolicy: false
@@ -43,12 +52,15 @@ export async function buildApp(
   await app.register(swagger, {
     openapi: {
       info: {
-        title: "FlowPay Attendance Router API",
-        description: "Routing, queueing and monitoring API for FlowPay support.",
+        title: "Nexora Pulse API",
+        description:
+          "Routing, queueing, authentication and monitoring API for Nexora Pulse.",
         version: "1.0.0"
       },
       tags: [
         { name: "Health" },
+        { name: "Auth" },
+        { name: "Users" },
         { name: "Teams" },
         { name: "Attendants" },
         { name: "Attendances" },
@@ -70,6 +82,7 @@ export async function buildApp(
   await registerRoutes(
     app,
     options.container,
+    authConfig,
     options.readiness ??
       (async () => ({
         ok: true,

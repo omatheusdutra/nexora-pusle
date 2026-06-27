@@ -5,8 +5,12 @@ import type {
   AttendantLoadDto,
   AttendanceDto,
   AttendanceQuery,
+  AuthUserDto,
+  CreateUserInput,
   CreateAttendanceInput,
   DashboardSummaryDto,
+  LoginInput,
+  LoginResponseDto,
   PaginatedResponse,
   QueueMetricDto,
   RecentActivityDto,
@@ -17,7 +21,7 @@ import type {
 const API_BASE_URL =
   import.meta.env.VITE_API_URL ?? "http://localhost:3333/api/v1";
 
-class ApiError extends Error {
+export class ApiError extends Error {
   constructor(
     message: string,
     public readonly status: number
@@ -29,6 +33,7 @@ class ApiError extends Error {
 
 async function requestJson<T>(path: string, init?: RequestInit): Promise<T> {
   const response = await fetch(`${API_BASE_URL}${path}`, {
+    credentials: "include",
     headers: {
       "Content-Type": "application/json",
       ...init?.headers
@@ -58,6 +63,21 @@ function queryString(params: Record<string, string | number | undefined>) {
 }
 
 export const api = {
+  login: (input: LoginInput) =>
+    requestJson<LoginResponseDto>("/auth/login", {
+      method: "POST",
+      body: JSON.stringify(input)
+    }),
+  getCurrentUser: () => requestJson<LoginResponseDto>("/auth/me"),
+  logout: () =>
+    requestJson<{ ok: true }>("/auth/logout", {
+      method: "POST"
+    }),
+  createUser: (input: CreateUserInput) =>
+    requestJson<{ user: AuthUserDto }>("/users", {
+      method: "POST",
+      body: JSON.stringify(input)
+    }),
   getTeams: () => requestJson<TeamDto[]>("/teams"),
   getSummary: () => requestJson<DashboardSummaryDto>("/dashboard/summary"),
   getQueues: () => requestJson<QueueMetricDto[]>("/dashboard/queues"),

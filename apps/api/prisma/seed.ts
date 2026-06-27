@@ -1,5 +1,6 @@
-import { PrismaClient, TeamType } from "@prisma/client";
+import { PrismaClient, TeamType, UserRole } from "@prisma/client";
 import { SUBJECT_MATCHERS, TEAM_LABELS } from "@flowpay/shared";
+import { hashPassword } from "../src/auth/password";
 
 const prisma = new PrismaClient();
 
@@ -10,6 +11,26 @@ const attendantNames: Record<TeamType, string[]> = {
 };
 
 const legacySeedPrefixes = ["Cliente "];
+
+const demoUsers: Array<{
+  name: string;
+  email: string;
+  password: string;
+  role: UserRole;
+}> = [
+  {
+    name: "Lucas Almeida",
+    email: "admin@nexora.local",
+    password: "Admin@12345",
+    role: "ADMIN"
+  },
+  {
+    name: "Mariana Costa",
+    email: "supervisor@nexora.local",
+    password: "Supervisor@12345",
+    role: "SUPERVISOR"
+  }
+];
 
 const demoAttendances: Array<{
   customerName: string;
@@ -156,6 +177,27 @@ const demoAttendances: Array<{
 
 async function main() {
   const seededTeams = new Map<TeamType, { id: string }>();
+
+  for (const user of demoUsers) {
+    const passwordHash = await hashPassword(user.password);
+
+    await prisma.user.upsert({
+      where: { email: user.email },
+      update: {
+        name: user.name,
+        passwordHash,
+        role: user.role,
+        status: "ACTIVE"
+      },
+      create: {
+        name: user.name,
+        email: user.email,
+        passwordHash,
+        role: user.role,
+        status: "ACTIVE"
+      }
+    });
+  }
 
   await prisma.attendant.deleteMany({
     where: {

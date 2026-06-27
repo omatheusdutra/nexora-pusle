@@ -10,6 +10,7 @@ import {
   type AttendanceDto,
   type AttendanceQuery,
   type AttendanceStatus,
+  type AuthUserDto,
   type CreateAttendanceInput,
   type CreateAttendantInput,
   type DashboardSummaryDto,
@@ -20,6 +21,7 @@ import {
   type RouteAttendanceResult,
   type TeamDto,
   type TeamType,
+  type UserStatus,
   type UpdateAttendantStatusInput
 } from "@flowpay/shared";
 import type {
@@ -30,7 +32,10 @@ import type {
   DashboardQueries,
   MetricsQueries,
   RealtimePublisher,
+  CreateUserRecordInput,
   TeamQueries,
+  UserRecord,
+  UserRepository,
   WorkflowEvent,
   WorkflowResult
 } from "../../application/contracts";
@@ -40,6 +45,7 @@ import {
 } from "../../domain/distribution-policy";
 import { ConflictError, NotFoundError } from "../../domain/errors";
 import { SubjectRouter } from "../../domain/subject-router";
+import { hashPasswordSync } from "../../auth/password";
 import { NoopRealtimePublisher } from "../realtime/noop-realtime-publisher";
 
 interface MemoryTeam {
@@ -85,6 +91,18 @@ interface MemoryAuditEvent {
   createdAt: Date;
 }
 
+interface MemoryUser {
+  id: string;
+  name: string;
+  email: string;
+  passwordHash: string;
+  role: AuthUserDto["role"];
+  status: UserStatus;
+  lastLoginAt: Date | null;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
 export class InMemoryWorkflow
   implements
     AttendanceWorkflow,
@@ -92,7 +110,8 @@ export class InMemoryWorkflow
     TeamQueries,
     DashboardQueries,
     AuditQueries,
-    MetricsQueries
+    MetricsQueries,
+    UserRepository
 {
   private readonly subjectRouter = new SubjectRouter();
   private readonly distributionPolicy = new DistributionPolicy();
@@ -100,6 +119,7 @@ export class InMemoryWorkflow
   private readonly attendants = new Map<string, MemoryAttendant>();
   private readonly attendances = new Map<string, MemoryAttendance>();
   private readonly auditEvents = new Map<string, MemoryAuditEvent>();
+  private readonly users = new Map<string, MemoryUser>();
   private sequence = 0;
 
   constructor() {
@@ -615,6 +635,51 @@ export class InMemoryWorkflow
     };
   }
 
+  async findByEmail(email: string): Promise<UserRecord | null> {
+    const user = [...this.users.values()].find(
+      (item) => item.email === email.toLowerCase()
+    );
+
+    return user ? this.toUserRecord(user) : null;
+  }
+
+  async findById(id: string): Promise<UserRecord | null> {
+    const user = this.users.get(id);
+
+    return user ? this.toUserRecord(user) : null;
+  }
+
+  async updateLastLogin(id: string, date: Date): Promise<void> {
+    const user = this.users.get(id);
+
+    if (user) {
+      user.lastLoginAt = date;
+      user.updatedAt = date;
+    }
+  }
+
+  async createUser(input: CreateUserRecordInput): Promise<AuthUserDto> {
+    if (await this.findByEmail(input.email)) {
+      throw new ConflictError("User e-mail already exists");
+    }
+
+    const now = new Date();
+    const user: MemoryUser = {
+      id: this.nextId("user"),
+      name: input.name,
+      email: input.email.toLowerCase(),
+      passwordHash: input.passwordHash,
+      role: input.role,
+      status: "ACTIVE",
+      lastLoginAt: null,
+      createdAt: now,
+      updatedAt: now
+    };
+
+    this.users.set(user.id, user);
+    return this.toAuthUserDto(user);
+  }
+
   private seed() {
     const now = new Date("2026-01-01T00:00:00.000Z");
     const teamOrder: TeamType[] = ["CARDS", "LOANS", "OTHER"];
@@ -655,6 +720,43 @@ export class InMemoryWorkflow
         };
         this.attendants.set(attendant.id, attendant);
       }
+    }
+
+    const demoUsers: Array<{
+      id: string;
+      name: string;
+      email: string;
+      password: string;
+      role: AuthUserDto["role"];
+    }> = [
+      {
+        id: "user-admin",
+        name: "Lucas Almeida",
+        email: "admin@nexora.local",
+        password: "Admin@12345",
+        role: "ADMIN"
+      },
+      {
+        id: "user-supervisor",
+        name: "Mariana Costa",
+        email: "supervisor@nexora.local",
+        password: "Supervisor@12345",
+        role: "SUPERVISOR"
+      }
+    ];
+
+    for (const user of demoUsers) {
+      this.users.set(user.id, {
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        passwordHash: hashPasswordSync(user.password),
+        role: user.role,
+        status: "ACTIVE",
+        lastLoginAt: null,
+        createdAt: now,
+        updatedAt: now
+      });
     }
   }
 
@@ -904,6 +1006,26 @@ export class InMemoryWorkflow
     };
   }
 
+  private toAuthUserDto(user: MemoryUser): AuthUserDto {
+    return {
+      id: user.id,
+      name: user.name,
+      email: user.email,
+      role: user.role
+    };
+  }
+
+  private toUserRecord(user: MemoryUser): UserRecord {
+    return {
+      ...this.toAuthUserDto(user),
+      passwordHash: user.passwordHash,
+      status: user.status,
+      lastLoginAt: user.lastLoginAt?.toISOString() ?? null,
+      createdAt: user.createdAt.toISOString(),
+      updatedAt: user.updatedAt.toISOString()
+    };
+  }
+
   private nextId(prefix: string) {
     this.sequence += 1;
     return `${prefix}-${this.sequence}`;
@@ -922,6 +1044,7 @@ export function createInMemoryContainer(
     dashboardQueries: workflow,
     auditQueries: workflow,
     metricsQueries: workflow,
+    userRepository: workflow,
     realtime
   };
 }

@@ -4,6 +4,8 @@ import type {
   AttendantDto,
   AttendanceDto,
   AttendanceQuery,
+  AuthUserDto,
+  CreateUserInput,
   CreateAttendanceInput,
   CreateAttendantInput,
   DashboardSummaryDto,
@@ -15,6 +17,7 @@ import type {
   AttendantLoadDto,
   TeamDto,
   RealtimeEventName,
+  UserStatus,
   UpdateAttendantStatusInput
 } from "@flowpay/shared";
 
@@ -72,6 +75,25 @@ export interface MetricsQueries {
   getOperationalMetrics(): Promise<OperationalMetricsDto>;
 }
 
+export interface UserRecord extends AuthUserDto {
+  passwordHash: string;
+  status: UserStatus;
+  lastLoginAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CreateUserRecordInput extends CreateUserInput {
+  passwordHash: string;
+}
+
+export interface UserRepository {
+  findByEmail(email: string): Promise<UserRecord | null>;
+  findById(id: string): Promise<UserRecord | null>;
+  updateLastLogin(id: string, date: Date): Promise<void>;
+  createUser(input: CreateUserRecordInput): Promise<AuthUserDto>;
+}
+
 export interface RealtimePublisher {
   publish(event: WorkflowEvent): void | Promise<void>;
 }
@@ -83,5 +105,6 @@ export interface AppContainer {
   dashboardQueries: DashboardQueries;
   auditQueries: AuditQueries;
   metricsQueries: MetricsQueries;
+  userRepository: UserRepository;
   realtime: RealtimePublisher;
 }

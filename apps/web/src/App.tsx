@@ -2,12 +2,15 @@ import { QueryClientProvider } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 import { Toaster } from "sonner";
+import { AuthProvider } from "./auth/auth-context";
+import { ProtectedRoute, PublicOnlyRoute } from "./auth/protected-route";
 import { AppShell } from "./components/app-shell";
 import { queryClient } from "./lib/query-client";
 import { AttendancesPage } from "./pages/attendances-page";
 import { AttendantsPage } from "./pages/attendants-page";
 import { ClientsPage } from "./pages/clients-page";
 import { DashboardPage } from "./pages/dashboard-page";
+import { LoginPage } from "./pages/login-page";
 import { QualityPage } from "./pages/quality-page";
 import { QueuesPage } from "./pages/queues-page";
 import { ReportsPage } from "./pages/reports-page";
@@ -38,24 +41,34 @@ export default function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <BrowserRouter>
-        <Routes>
-          <Route
-            element={
-              <AppShell dark={dark} onToggleTheme={() => setDark((v) => !v)} />
-            }
-          >
-            <Route index element={<Navigate to="/dashboard" replace />} />
-            <Route path="dashboard" element={<DashboardPage />} />
-            <Route path="attendances" element={<AttendancesPage />} />
-            <Route path="queues" element={<QueuesPage />} />
-            <Route path="attendants" element={<AttendantsPage />} />
-            <Route path="clients" element={<ClientsPage />} />
-            <Route path="reports" element={<ReportsPage />} />
-            <Route path="quality" element={<QualityPage />} />
-            <Route path="settings" element={<SettingsPage />} />
-            <Route path="*" element={<Navigate to="/dashboard" replace />} />
-          </Route>
-        </Routes>
+        <AuthProvider>
+          <Routes>
+            <Route element={<PublicOnlyRoute />}>
+              <Route path="login" element={<LoginPage />} />
+            </Route>
+            <Route element={<ProtectedRoute />}>
+              <Route
+                element={
+                  <AppShell
+                    dark={dark}
+                    onToggleTheme={() => setDark((value) => !value)}
+                  />
+                }
+              >
+                <Route index element={<Navigate to="/dashboard" replace />} />
+                <Route path="dashboard" element={<DashboardPage />} />
+                <Route path="attendances" element={<AttendancesPage />} />
+                <Route path="queues" element={<QueuesPage />} />
+                <Route path="attendants" element={<AttendantsPage />} />
+                <Route path="clients" element={<ClientsPage />} />
+                <Route path="reports" element={<ReportsPage />} />
+                <Route path="quality" element={<QualityPage />} />
+                <Route path="settings" element={<SettingsPage />} />
+                <Route path="*" element={<Navigate to="/dashboard" replace />} />
+              </Route>
+            </Route>
+          </Routes>
+        </AuthProvider>
       </BrowserRouter>
       <Toaster
         richColors

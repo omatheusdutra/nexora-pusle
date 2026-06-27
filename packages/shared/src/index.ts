@@ -7,12 +7,18 @@ export const ATTENDANCE_STATUSES = [
   "FINISHED",
   "CANCELLED"
 ] as const;
+export const USER_ROLES = ["ADMIN", "SUPERVISOR"] as const;
+export const USER_STATUSES = ["ACTIVE", "INACTIVE"] as const;
 
 export const teamTypeSchema = z.enum(TEAM_TYPES);
 export const attendanceStatusSchema = z.enum(ATTENDANCE_STATUSES);
+export const userRoleSchema = z.enum(USER_ROLES);
+export const userStatusSchema = z.enum(USER_STATUSES);
 
 export type TeamType = z.infer<typeof teamTypeSchema>;
 export type AttendanceStatus = z.infer<typeof attendanceStatusSchema>;
+export type UserRole = z.infer<typeof userRoleSchema>;
+export type UserStatus = z.infer<typeof userStatusSchema>;
 
 export const TEAM_LABELS: Record<TeamType, string> = {
   CARDS: "Time Cartoes",
@@ -113,6 +119,18 @@ export const updateAttendantStatusSchema = z.object({
   isOnline: z.boolean()
 });
 
+export const loginSchema = z.object({
+  email: z.string().email().trim().toLowerCase(),
+  password: z.string().min(1).max(160)
+});
+
+export const createUserSchema = z.object({
+  name: sanitizedString("name", 2, 120),
+  email: z.string().email().trim().toLowerCase(),
+  password: z.string().min(10).max(160),
+  role: userRoleSchema.default("SUPERVISOR")
+});
+
 export const attendanceQuerySchema = z.object({
   status: attendanceStatusSchema.optional(),
   teamId: z.string().min(1).optional(),
@@ -137,8 +155,21 @@ export type CreateAttendantInput = z.infer<typeof createAttendantSchema>;
 export type UpdateAttendantStatusInput = z.infer<
   typeof updateAttendantStatusSchema
 >;
+export type LoginInput = z.infer<typeof loginSchema>;
+export type CreateUserInput = z.infer<typeof createUserSchema>;
 export type AttendanceQuery = z.infer<typeof attendanceQuerySchema>;
 export type AuditEventQuery = z.infer<typeof auditEventQuerySchema>;
+
+export interface AuthUserDto {
+  id: string;
+  name: string;
+  email: string;
+  role: UserRole;
+}
+
+export interface LoginResponseDto {
+  user: AuthUserDto;
+}
 
 export interface TeamDto {
   id: string;
