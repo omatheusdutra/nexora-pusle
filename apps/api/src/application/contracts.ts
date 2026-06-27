@@ -1,4 +1,6 @@
 import type {
+  AuditEventDto,
+  AuditEventQuery,
   AttendantDto,
   AttendanceDto,
   AttendanceQuery,
@@ -8,6 +10,7 @@ import type {
   PaginatedResponse,
   QueueMetricDto,
   RecentActivityDto,
+  OperationalMetricsDto,
   RouteAttendanceResult,
   AttendantLoadDto,
   TeamDto,
@@ -59,6 +62,16 @@ export interface DashboardQueries {
   getRecentActivity(limit?: number): Promise<RecentActivityDto[]>;
 }
 
+export interface AuditQueries {
+  listAuditEvents(
+    query: AuditEventQuery
+  ): Promise<PaginatedResponse<AuditEventDto>>;
+}
+
+export interface MetricsQueries {
+  getOperationalMetrics(): Promise<OperationalMetricsDto>;
+}
+
 export interface RealtimePublisher {
   publish(event: WorkflowEvent): void | Promise<void>;
 }
@@ -68,5 +81,7 @@ export interface AppContainer {
   attendantWorkflow: AttendantWorkflow;
   teamQueries: TeamQueries;
   dashboardQueries: DashboardQueries;
+  auditQueries: AuditQueries;
+  metricsQueries: MetricsQueries;
   realtime: RealtimePublisher;
 }

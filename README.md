@@ -1,63 +1,45 @@
 # Nexora Pulse
 
-AI Operations Command Center para distribuicao e monitoramento em tempo real de atendimentos. Este projeto implementa o desafio tecnico FlowPay Attendance Router, mas a experiencia visual do produto foi apresentada como Nexora Pulse, um command center SaaS fintech com foco em operacao, roteamento inteligente e acompanhamento de capacidade em tempo real.
+![Node.js](https://img.shields.io/badge/Node.js-22+-339933?logo=node.js&logoColor=white)
+![TypeScript](https://img.shields.io/badge/TypeScript-5.x-3178C6?logo=typescript&logoColor=white)
+![Fastify](https://img.shields.io/badge/Fastify-API-000000?logo=fastify&logoColor=white)
+![React](https://img.shields.io/badge/React-18-61DAFB?logo=react&logoColor=111111)
+![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16-4169E1?logo=postgresql&logoColor=white)
+![Redis](https://img.shields.io/badge/Redis-7-DC382D?logo=redis&logoColor=white)
+![Docker](https://img.shields.io/badge/Docker-Compose-2496ED?logo=docker&logoColor=white)
 
-O produto roteia atendimentos por assunto, respeita capacidade maxima por atendente, usa fila FIFO por time quando a capacidade esta cheia e atualiza o dashboard via WebSocket sem refresh.
+Command center operacional para roteamento, fila e monitoramento em tempo real de atendimentos. O projeto implementa o desafio tecnico FlowPay Attendance Router com uma experiencia visual de produto SaaS fintech: distribuicao automatica por assunto, controle de capacidade por atendente, fila FIFO por time, auditoria, metricas e dashboard reativo via WebSocket.
+
+## Entrega
+
+- Roteamento por assunto para `Time Cartoes`, `Time Emprestimos` e `Time Outros Assuntos`.
+- Distribuicao automatica por menor carga, com desempate round-robin deterministico por time.
+- Limite de capacidade por atendente e fila `QUEUED` quando o time esta cheio.
+- Pull automatico do proximo item FIFO ao finalizar ou cancelar atendimento em andamento.
+- Reatribuicao automatica quando um atendente fica offline; sem capacidade disponivel, o atendimento volta para a fila.
+- Auditoria operacional persistida para criacao, atribuicao, fila, finalizacao, cancelamento, reatribuicao e status de atendente.
+- Metricas em JSON e formato Prometheus.
+- Dashboard React com KPIs, graficos, feed de atendimentos, painel de auditoria, status dos atendentes e atualizacao Socket.io.
+- Docker Compose com API, web, PostgreSQL e Redis.
+- Testes automatizados de dominio, workflow, API e frontend.
 
 ## Stack
 
-- Monorepo: pnpm workspaces
-- API: Node.js, TypeScript, Fastify, Prisma, PostgreSQL, Redis, Socket.io, Zod, Pino, Swagger/OpenAPI
-- Web: React, Vite, TypeScript, Tailwind CSS, componentes estilo shadcn/ui, TanStack Query, React Hook Form, Zod, Recharts, Sonner
-- Testes: Vitest, Supertest, Testing Library
-- DevOps: Docker Compose com api, web, postgres e redis
+- Monorepo com pnpm workspaces.
+- API: Node.js 22, TypeScript, Fastify, Prisma, PostgreSQL, Redis, Socket.io, Zod, Pino e Swagger/OpenAPI.
+- Web: React 18, Vite, TypeScript, Tailwind CSS, TanStack Query, React Hook Form, Zod, Recharts e Sonner.
+- Testes: Vitest, Supertest e Testing Library.
+- DevOps local: Docker Compose, Dockerfiles multi-stage e Prisma migrations.
 
-## Arquitetura
+## Como Executar
 
-```txt
-apps/api
-  src/domain                 regras puras: roteamento e distribuicao
-  src/application            contratos e use cases
-  src/infrastructure         Prisma, workflows, realtime
-  src/http                   rotas, schemas, Swagger, error handler
-  prisma                     schema, migration e seed
+Subir tudo em containers:
 
-apps/web
-  src/components             dashboard, formulario, graficos e UI
-  src/hooks                  websocket e invalidacao em tempo real
-  src/lib                    cliente REST, query client e helpers
-
-packages/shared
-  schemas Zod, tipos DTO, constantes e eventos compartilhados
+```bash
+docker compose up --build
 ```
 
-Clean Architecture foi aplicada de forma pragmatica: controllers validam entrada e chamam use cases; regra de negocio fica fora das rotas; Prisma e WebSocket ficam como adaptadores de infraestrutura.
-
-## Regras implementadas
-
-- `Problemas com cartao` vai para `Time Cartoes`.
-- `Contratacao de emprestimo` vai para `Time Emprestimos`.
-- Qualquer outro assunto vai para `Time Outros Assuntos`.
-- Cada atendente atende no maximo 3 clientes simultaneos por padrao.
-- A distribuicao escolhe menor carga atual.
-- Empate usa cursor round-robin deterministico por time.
-- Se todos estiverem cheios, o atendimento fica `QUEUED`.
-- Ao finalizar ou cancelar atendimento em andamento, o proximo item FIFO do time e atribuido automaticamente.
-- Mudancas publicam eventos Socket.io para o dashboard.
-
-## Concorrencia
-
-O fluxo critico de atribuicao usa transacao Prisma com PostgreSQL e bloqueia a linha do time e os atendentes do time via `SELECT ... FOR UPDATE`. Isso serializa atribuicoes concorrentes no mesmo time, recalcula carga dentro da transacao e evita passar do limite por atendente.
-
-A fila e derivada de `Attendance` com `status = QUEUED`, ordenada por `queuedAt` e `createdAt`. Isso evita uma tabela extra sem perder robustez para o escopo do desafio.
-
-## Como rodar localmente
-
-Requisitos:
-
-- Node.js 22+
-- pnpm 9+
-- Docker, para Postgres e Redis locais
+Rodar localmente usando Postgres/Redis do Compose:
 
 ```bash
 pnpm install
@@ -69,94 +51,89 @@ pnpm db:seed
 pnpm dev
 ```
 
-URLs:
-
-- Web: http://localhost:5173
-- API: http://localhost:3333
-- Swagger: http://localhost:3333/docs
-- Health: http://localhost:3333/health
-- Ready: http://localhost:3333/ready
-
-## Como rodar com Docker
-
-```bash
-docker compose up --build
-```
-
-O container da API executa migrations e seed antes de subir o servidor. O seed cria os 3 times, atendentes iniciais e uma amostra profissional de atendimentos de demo. Ele tambem remove registros antigos claramente genericos, como `Cliente Docker`, `Cliente Socket` e `Cliente Test`.
-
-## Variaveis de ambiente
-
-Veja `.env.example`.
-
-Principais:
-
-- `DATABASE_URL`: conexao PostgreSQL usada pelo Prisma.
-- `REDIS_URL`: Redis usado pelo adapter do Socket.io e readiness.
-- `CORS_ORIGIN`: origem permitida para web e websocket.
-- `RATE_LIMIT_MAX` e `RATE_LIMIT_WINDOW`: rate limit do Fastify.
-- `VITE_API_URL`: URL REST consumida pelo frontend.
-- `VITE_SOCKET_URL`: URL Socket.io consumida pelo frontend.
-
-## Scripts
-
-```bash
-pnpm dev          # api e web em modo desenvolvimento
-pnpm build        # build de todos os pacotes
-pnpm lint         # ESLint
-pnpm typecheck    # TypeScript sem emitir arquivos
-pnpm test         # testes automatizados
-pnpm db:migrate   # prisma migrate dev
-pnpm db:seed      # seed de times e atendentes
-```
-
 Se o pnpm estiver disponivel apenas via Corepack:
 
 ```bash
 corepack pnpm install
-corepack pnpm test
+corepack pnpm dev
 ```
 
-## Dados demo locais
+URLs principais:
 
-Para atualizar a massa demo profissional local:
+- Web: `http://localhost:5173`
+- API: `http://localhost:3333`
+- Swagger: `http://localhost:3333/docs`
+- Health: `http://localhost:3333/health`
+- Readiness: `http://localhost:3333/ready`
+- Prometheus metrics: `http://localhost:3333/metrics`
+
+## Tour de 30s
+
+1. Abra `http://localhost:5173`.
+2. Crie um atendimento com assunto `Problemas com cartao` ou `Contratacao de emprestimo`.
+3. Observe o roteamento automatico para o time correto e a atribuicao ao atendente com menor carga.
+4. Crie atendimentos ate exceder a capacidade do time e veja a fila FIFO entrar em acao.
+5. Finalize ou cancele um atendimento em andamento para ver o proximo item da fila ser atribuido.
+6. Coloque um atendente offline e acompanhe a reatribuicao ou retorno para fila.
+7. Consulte o painel de auditoria e o endpoint `/metrics` para verificar os eventos e indicadores.
+
+## Como Testar
 
 ```bash
-pnpm db:seed
+pnpm lint
+pnpm typecheck
+pnpm test
+pnpm build
 ```
 
-O seed e idempotente para o ambiente de desafio/demo: ele recria os atendimentos profissionais da Nexora Pulse quando a amostra esta incompleta e remove nomes genericos de seeds antigos.
+Cobertura principal:
 
-Para um reset completo local, apagando volumes do Postgres de desenvolvimento, use apenas em ambiente local/demo:
+- roteamento por assunto;
+- menor carga e round-robin;
+- limite de capacidade;
+- fila FIFO;
+- pull automatico ao finalizar/cancelar;
+- reatribuicao offline e retorno para fila sem capacidade;
+- endpoints de dashboard, auditoria e metricas;
+- renderizacao do dashboard e formulario de criacao.
 
-```bash
-docker compose down -v
-docker compose up -d postgres redis
-pnpm db:migrate
-pnpm db:seed
+## Dashboard Operacional
+
+A primeira tela e o command center Nexora Pulse:
+
+- sidebar compacta com areas de operacao, qualidade, relatorios e configuracoes;
+- header com status ao vivo, websocket, busca, refresh, tema e perfil de supervisor;
+- KPIs compactos para volume, fila, capacidade e tempo medio;
+- formulario de criacao de atendimento com presets de assunto;
+- graficos de fila por time, carga dos atendentes e distribuicao por time;
+- painel de auditoria operacional com eventos recentes;
+- lista de atendentes com status online/offline, capacidade e alternancia de disponibilidade;
+- feed de atendimentos recentes com acoes de finalizar/cancelar;
+- code splitting com `React.lazy` e `Suspense` para carregar graficos e bloco operacional sob demanda.
+
+Validacao visual recomendada:
+
+```txt
+http://localhost:5173
+1366x768, 1440x900, 1920x1080 e mobile basico
 ```
 
-## Endpoints principais
+## API REST v1
 
 Base REST: `/api/v1`
 
-- `GET /health`
-- `GET /ready`
-- `GET /api/v1/teams`
-- `GET /api/v1/attendants`
-- `POST /api/v1/attendants`
-- `PATCH /api/v1/attendants/:id/status`
-- `POST /api/v1/attendances`
-- `GET /api/v1/attendances`
-- `GET /api/v1/attendances/:id`
-- `PATCH /api/v1/attendances/:id/finish`
-- `PATCH /api/v1/attendances/:id/cancel`
-- `GET /api/v1/dashboard/summary`
-- `GET /api/v1/dashboard/queues`
-- `GET /api/v1/dashboard/attendants-load`
-- `GET /api/v1/dashboard/recent-activity`
+Swagger UI: `/docs`
 
-## Exemplos de payload
+Endpoints principais:
+
+- Times: `GET /api/v1/teams`
+- Atendentes: `GET /api/v1/attendants`, `POST /api/v1/attendants`, `PATCH /api/v1/attendants/:id/status`
+- Atendimentos: `POST /api/v1/attendances`, `GET /api/v1/attendances`, `GET /api/v1/attendances/:id`
+- Ciclo de atendimento: `PATCH /api/v1/attendances/:id/finish`, `PATCH /api/v1/attendances/:id/cancel`
+- Dashboard: `GET /api/v1/dashboard/summary`, `/queues`, `/attendants-load`, `/recent-activity`
+- Auditoria: `GET /api/v1/audit-events`
+- Metricas: `GET /api/v1/metrics`, `GET /metrics`
+- Operacao: `GET /health`, `GET /ready`
 
 Criar atendimento:
 
@@ -178,7 +155,7 @@ Criar atendente:
 }
 ```
 
-Atualizar status do atendente:
+Atualizar disponibilidade:
 
 ```json
 {
@@ -186,15 +163,16 @@ Atualizar status do atendente:
 }
 ```
 
-Filtros de atendimentos:
+Filtros uteis:
 
 ```txt
 GET /api/v1/attendances?status=QUEUED&teamId=team-id&page=1&pageSize=20
+GET /api/v1/audit-events?type=ATTENDANCE_REASSIGNED&entityType=ATTENDANCE&page=1&pageSize=20
 ```
 
 ## Eventos WebSocket
 
-Socket.io em `VITE_SOCKET_URL` com path `/socket.io`.
+Socket.io usa `VITE_SOCKET_URL` com path `/socket.io`.
 
 Eventos emitidos:
 
@@ -203,78 +181,87 @@ Eventos emitidos:
 - `attendance.queued`
 - `attendance.finished`
 - `attendance.cancelled`
+- `attendance.reassigned`
 - `queue.updated`
 - `attendant.updated`
 - `dashboard.updated`
 
-O frontend invalida as queries do TanStack Query ao receber eventos e recarrega metricas, filas, atendentes e atividade recente.
+O frontend invalida queries do TanStack Query ao receber eventos e recarrega dashboard, filas, atendentes, atendimentos e auditoria.
 
-## Dashboard
+## Superficie de Decisao
 
-A primeira tela e o command center operacional Nexora Pulse:
+| Cenario | Decisao | Evidencia |
+| --- | --- | --- |
+| Concorrencia na atribuicao | Transacao Prisma e `SELECT ... FOR UPDATE` no time e atendentes | `PrismaWorkflow`, testes de workflow |
+| Time cheio | Atendimento fica `QUEUED` e preserva FIFO por `queuedAt`/`createdAt` | `workflow.spec.ts` |
+| Atendente offline | Reatribui atendimentos ativos ou devolve para a fila sem violar capacidade | `workflow.spec.ts` |
+| Observabilidade operacional | Eventos de auditoria e metricas Prometheus | `api.spec.ts`, `/api/v1/audit-events`, `/metrics` |
+| Validacao de entrada | Zod no shared package e JSON Schema nas rotas Fastify | `packages/shared`, `apps/api/src/http/schemas.ts` |
+| Realtime no dashboard | Socket.io publica eventos de dominio e o frontend invalida queries | `use-realtime.ts` |
+| Chunk inicial do web | Graficos e coluna operacional em chunks lazy | build Vite gera `dashboard-charts` e `dashboard-operations-column` |
 
-- sidebar compacta com BrandMark, areas de operacao, qualidade, relatorios e configuracoes
-- header com status ao vivo, websocket, busca global, refresh, notificacoes, tema e perfil de supervisor
-- KPIs compactos com iconografia, bordas luminosas, micro trends e glassmorphism
-- modulo de criacao de atendimento com presets de rota e feedback de roteamento
-- fila por time com ring/radar permanente, mesmo quando a fila esta zerada
-- carga dos atendentes com barras HUD e cores por nivel de ocupacao
-- painel de distribuicao por time com donut e legenda
-- lista de atendentes com avatar, status, alerta de lotacao e barra de capacidade
-- feed de atendimentos recentes com avatares, badges, acoes e scroll interno
-- indicador de conexao WebSocket, loading states, empty states, toasts e dark mode padrao
+## Observabilidade e Seguranca
 
-Validacao visual recomendada:
+- Logs via Pino/Fastify.
+- Request id por requisicao.
+- `/health` e `/ready`.
+- `/metrics` em formato Prometheus.
+- Auditoria persistida em `AuditEvent`.
+- Helmet, CORS por env e rate limit.
+- Validacao Zod e JSON Schema.
+- Sanitizacao basica de texto.
+- Prisma com queries parametrizadas.
+- Error handler global sem stack trace em producao.
+
+## Arquitetura
 
 ```txt
-http://localhost:5173
-1366x768, 1440x900, 1920x1080 e mobile basico
+apps/api
+  src/domain                 regras puras: roteamento e distribuicao
+  src/application            contratos e use cases
+  src/infrastructure         Prisma, workflows e realtime
+  src/http                   rotas, schemas, Swagger e error handler
+  prisma                     schema, migrations e seed
+
+apps/web
+  src/components             dashboard, formulario, graficos e UI
+  src/hooks                  websocket e invalidacao realtime
+  src/lib                    cliente REST, query client e helpers
+
+packages/shared
+  schemas Zod, tipos DTO, constantes e eventos compartilhados
 ```
 
-Em 1366x768, a primeira dobra deve mostrar sidebar, header, KPIs, entrada assistida, fila por time, carga dos atendentes e o inicio dos modulos inferiores.
-
-## Testes
-
-Cobertura principal:
-
-- roteamento por assunto
-- capacidade maxima
-- menor carga e round-robin
-- fila FIFO
-- pull automatico ao finalizar
-- criacao/finalizacao/dashboard/validacao da API
-- renderizacao do dashboard e formulario no frontend
-
-```bash
-pnpm test
+```mermaid
+flowchart LR
+  supervisor[Supervisor] --> web[React / Vite Dashboard]
+  web -->|REST JSON| api[Fastify API]
+  web <-->|Socket.io| api
+  api --> app[Application Use Cases]
+  app --> domain[Domain Rules]
+  api --> prisma[Prisma Workflow]
+  prisma --> postgres[(PostgreSQL)]
+  api --> redis[(Redis)]
+  api --> metrics[/Prometheus metrics/]
 ```
 
-## Observabilidade e seguranca
+Clean Architecture foi aplicada de forma pragmatica: rotas validam entrada e chamam use cases; regras de negocio ficam no dominio; Prisma, Redis e Socket.io ficam como adaptadores de infraestrutura.
 
-- Pino via logger do Fastify
-- request id por request
-- `/health` e `/ready`
-- Helmet
-- CORS configurado por env
-- rate limit
-- validacao Zod e JSON Schema
-- sanitizacao basica de texto
-- Prisma para queries parametrizadas
-- error handler global sem stack trace em producao
-
-## Decisoes e trade-offs
+## Decisoes e Trade-offs
 
 - A fila foi derivada de `Attendance` para reduzir complexidade e manter FIFO claro.
-- Redis foi usado como infraestrutura de realtime via adapter do Socket.io; cache adicional ficou fora do escopo por nao agregar ao core.
-- Sem autenticacao complexa para preservar foco no roteamento, concorrencia, dashboard e testes.
+- Redis ficou dedicado ao realtime via adapter do Socket.io; cache adicional nao foi necessario para o core.
+- Autenticacao complexa ficou fora para preservar foco em roteamento, concorrencia, dashboard e testes.
+- Playwright ficou como melhoria futura porque o projeto nao tinha dependencia/browser setup instalado; adicionar isso agora aumentaria risco sobre o core.
 - O dashboard invalida queries ao receber eventos em vez de manter estado duplicado manualmente.
 - Round-robin usa cursor por time para desempate previsivel e simples.
 
-## Melhorias futuras
+## Roadmap Futuro
 
-- Autenticacao e RBAC para supervisores.
-- Auditoria detalhada de eventos.
-- Metricas Prometheus/OpenTelemetry.
-- Reatribuicao automatica quando atendente fica offline.
-- Code splitting do dashboard para reduzir chunk inicial.
-- Teste end-to-end com Playwright cobrindo WebSocket real.
+| Item | Motivo |
+| --- | --- |
+| Autenticacao, RBAC e permissoes granulares | Separar operadores, supervisores e administradores |
+| OpenTelemetry distribuido e alertas externos | Aprofundar observabilidade alem das metricas atuais |
+| Playwright E2E com WebSocket real | Cobrir a jornada completa no navegador |
+| Analytics historico de SLA e abandono de fila | Transformar eventos operacionais em inteligencia de gestao |
+| Dashboards Grafana versionados | Entregar paineis prontos em cima do endpoint Prometheus |

@@ -1,4 +1,8 @@
 import type {
+  AuditEntityType,
+  AuditEventDto,
+  AuditEventQuery,
+  AuditEventType,
   AttendantDto,
   AttendantLoadDto,
   AttendanceDto,
@@ -9,6 +13,7 @@ import type {
   PaginatedResponse,
   QueueMetricDto,
   RecentActivityDto,
+  OperationalMetricsDto,
   RouteAttendanceResult,
   TeamDto,
   TeamType,
@@ -17,9 +22,11 @@ import type {
 import { Prisma, PrismaClient } from "@prisma/client";
 import type {
   AppContainer,
+  AuditQueries,
   AttendantWorkflow,
   AttendanceWorkflow,
   DashboardQueries,
+  MetricsQueries,
   RealtimePublisher,
   TeamQueries,
   WorkflowEvent,
@@ -48,7 +55,13 @@ type LoadedAttendant = Prisma.AttendantGetPayload<{
 type LoadedTeam = Prisma.TeamGetPayload<Record<string, never>>;
 
 export class PrismaWorkflow
-  implements AttendanceWorkflow, AttendantWorkflow, TeamQueries, DashboardQueries
+  implements
+    AttendanceWorkflow,
+    AttendantWorkflow,
+    TeamQueries,
+    DashboardQueries,
+    AuditQueries,
+    MetricsQueries
 {
   private readonly subjectRouter = new SubjectRouter();
   private readonly distributionPolicy = new DistributionPolicy();
@@ -97,6 +110,23 @@ export class PrismaWorkflow
           data: { roundRobinCursor: assignment.nextCursor }
         });
       }
+
+      await this.writeAuditEvent(tx, "ATTENDANCE_CREATED", "ATTENDANCE", attendance.id, {
+        status: attendance.status,
+        teamId: attendance.teamId,
+        attendantId: attendance.attendantId
+      });
+      await this.writeAuditEvent(
+        tx,
+        assignment ? "ATTENDANCE_ASSIGNED" : "ATTENDANCE_QUEUED",
+        "ATTENDANCE",
+        attendance.id,
+        {
+          status: attendance.status,
+          teamId: attendance.teamId,
+          attendantId: attendance.attendantId
+        }
+      );
 
       return {
         attendance,
@@ -163,6 +193,25 @@ export class PrismaWorkflow
         include: attendanceInclude
       });
       const assignedAttendance = await this.assignNextQueued(tx, attendance.teamId);
+
+      await this.writeAuditEvent(tx, "ATTENDANCE_FINISHED", "ATTENDANCE", finished.id, {
+        teamId: finished.teamId,
+        attendantId: finished.attendantId
+      });
+
+      if (assignedAttendance) {
+        await this.writeAuditEvent(
+          tx,
+          "ATTENDANCE_ASSIGNED",
+          "ATTENDANCE",
+          assignedAttendance.id,
+          {
+            teamId: assignedAttendance.teamId,
+            attendantId: assignedAttendance.attendantId,
+            source: "QUEUE_PULL"
+          }
+        );
+      }
 
       return {
         attendance: finished,
@@ -253,6 +302,31 @@ export class PrismaWorkflow
       const assignedAttendance = shouldPullNext
         ? await this.assignNextQueued(tx, attendance.teamId)
         : null;
+
+      await this.writeAuditEvent(
+        tx,
+        "ATTENDANCE_CANCELLED",
+        "ATTENDANCE",
+        cancelled.id,
+        {
+          teamId: cancelled.teamId,
+          attendantId: cancelled.attendantId
+        }
+      );
+
+      if (assignedAttendance) {
+        await this.writeAuditEvent(
+          tx,
+          "ATTENDANCE_ASSIGNED",
+          "ATTENDANCE",
+          assignedAttendance.id,
+          {
+            teamId: assignedAttendance.teamId,
+            attendantId: assignedAttendance.attendantId,
+            source: "QUEUE_PULL"
+          }
+        );
+      }
 
       return {
         attendance: cancelled,
@@ -382,6 +456,31 @@ export class PrismaWorkflow
         : null;
       const loads = await this.getLoadMap(tx, input.teamId);
 
+      await this.writeAuditEvent(
+        tx,
+        input.isOnline ? "ATTENDANT_ONLINE" : "ATTENDANT_OFFLINE",
+        "ATTENDANT",
+        attendant.id,
+        {
+          teamId: attendant.teamId,
+          source: "ATTENDANT_CREATED"
+        }
+      );
+
+      if (assignedAttendance) {
+        await this.writeAuditEvent(
+          tx,
+          "ATTENDANCE_ASSIGNED",
+          "ATTENDANCE",
+          assignedAttendance.id,
+          {
+            teamId: assignedAttendance.teamId,
+            attendantId: assignedAttendance.attendantId,
+            source: "ATTENDANT_ONLINE"
+          }
+        );
+      }
+
       return {
         attendant,
         currentLoad: loads.get(attendant.id) ?? 0,
@@ -429,16 +528,57 @@ export class PrismaWorkflow
       const assignedAttendance = input.isOnline
         ? await this.assignNextQueued(tx, attendant.teamId)
         : null;
+      const reassignmentResult = input.isOnline
+        ? { reassigned: [] as LoadedAttendance[], queued: [] as LoadedAttendance[] }
+        : await this.reassignActiveAttendancesFromOfflineAttendant(
+            tx,
+            attendant.id,
+            attendant.teamId
+          );
       const loads = await this.getLoadMap(tx, attendant.teamId);
+
+      await this.writeAuditEvent(
+        tx,
+        input.isOnline ? "ATTENDANT_ONLINE" : "ATTENDANT_OFFLINE",
+        "ATTENDANT",
+        attendant.id,
+        {
+          teamId: attendant.teamId,
+          reassigned: reassignmentResult.reassigned.length,
+          queued: reassignmentResult.queued.length
+        }
+      );
+
+      if (assignedAttendance) {
+        await this.writeAuditEvent(
+          tx,
+          "ATTENDANCE_ASSIGNED",
+          "ATTENDANCE",
+          assignedAttendance.id,
+          {
+            teamId: assignedAttendance.teamId,
+            attendantId: assignedAttendance.attendantId,
+            source: "ATTENDANT_ONLINE"
+          }
+        );
+      }
 
       return {
         attendant,
         currentLoad: loads.get(attendant.id) ?? 0,
-        assignedAttendance
+        assignedAttendance,
+        reassignedAttendances: reassignmentResult.reassigned,
+        queuedAttendances: reassignmentResult.queued
       };
     });
 
     const dto = this.toAttendantDto(result.attendant, result.currentLoad);
+    const reassignedDtos = result.reassignedAttendances.map((attendance) =>
+      this.toAttendanceDto(attendance)
+    );
+    const queuedDtos = result.queuedAttendances.map((attendance) =>
+      this.toAttendanceDto(attendance)
+    );
     const events: WorkflowEvent[] = [
       { name: "attendant.updated", payload: dto },
       { name: "queue.updated", payload: { teamId: dto.teamId } },
@@ -449,6 +589,20 @@ export class PrismaWorkflow
       events.splice(1, 0, {
         name: "attendance.assigned",
         payload: this.toAttendanceDto(result.assignedAttendance)
+      });
+    }
+
+    for (const reassigned of reassignedDtos) {
+      events.splice(1, 0, {
+        name: "attendance.reassigned",
+        payload: reassigned
+      });
+    }
+
+    for (const queued of queuedDtos) {
+      events.splice(1, 0, {
+        name: "attendance.queued",
+        payload: queued
       });
     }
 
@@ -594,6 +748,50 @@ export class PrismaWorkflow
     }));
   }
 
+  async listAuditEvents(
+    query: AuditEventQuery
+  ): Promise<PaginatedResponse<AuditEventDto>> {
+    const where: Prisma.AuditEventWhereInput = {
+      type: query.type,
+      entityType: query.entityType,
+      entityId: query.entityId,
+      createdAt:
+        query.from || query.to
+          ? {
+              gte: query.from ? new Date(query.from) : undefined,
+              lte: query.to ? new Date(query.to) : undefined
+            }
+          : undefined
+    };
+    const skip = (query.page - 1) * query.pageSize;
+    const [total, data] = await this.prisma.$transaction([
+      this.prisma.auditEvent.count({ where }),
+      this.prisma.auditEvent.findMany({
+        where,
+        orderBy: { createdAt: "desc" },
+        skip,
+        take: query.pageSize
+      })
+    ]);
+
+    return {
+      data: data.map((event) => this.toAuditEventDto(event)),
+      page: query.page,
+      pageSize: query.pageSize,
+      total,
+      totalPages: Math.ceil(total / query.pageSize)
+    };
+  }
+
+  async getOperationalMetrics(): Promise<OperationalMetricsDto> {
+    const summary = await this.getSummary();
+
+    return {
+      ...summary,
+      generatedAt: new Date().toISOString()
+    };
+  }
+
   private async assignNextQueued(tx: PrismaTransaction, teamId: string) {
     const nextQueued = await tx.attendance.findFirst({
       where: { teamId, status: "QUEUED" },
@@ -631,6 +829,82 @@ export class PrismaWorkflow
     });
 
     return updated;
+  }
+
+  private async reassignActiveAttendancesFromOfflineAttendant(
+    tx: PrismaTransaction,
+    attendantId: string,
+    teamId: string
+  ) {
+    const activeAttendances = await tx.attendance.findMany({
+      where: {
+        attendantId,
+        teamId,
+        status: "IN_PROGRESS"
+      },
+      orderBy: [{ startedAt: "asc" }, { createdAt: "asc" }]
+    });
+    const reassigned: LoadedAttendance[] = [];
+    const queued: LoadedAttendance[] = [];
+
+    for (const attendance of activeAttendances) {
+      const team = await tx.team.findUniqueOrThrow({ where: { id: teamId } });
+      const assignment = await this.pickAvailableAttendant(
+        tx,
+        teamId,
+        team.roundRobinCursor
+      );
+      const now = new Date();
+
+      if (assignment) {
+        const updated = await tx.attendance.update({
+          where: { id: attendance.id },
+          data: {
+            attendantId: assignment.attendantId,
+            updatedAt: now
+          },
+          include: attendanceInclude
+        });
+        await tx.team.update({
+          where: { id: teamId },
+          data: { roundRobinCursor: assignment.nextCursor }
+        });
+        await this.writeAuditEvent(
+          tx,
+          "ATTENDANCE_REASSIGNED",
+          "ATTENDANCE",
+          updated.id,
+          {
+            teamId: updated.teamId,
+            fromAttendantId: attendantId,
+            toAttendantId: assignment.attendantId,
+            source: "ATTENDANT_OFFLINE"
+          }
+        );
+        reassigned.push(updated);
+        continue;
+      }
+
+      const updated = await tx.attendance.update({
+        where: { id: attendance.id },
+        data: {
+          status: "QUEUED",
+          attendantId: null,
+          queuedAt: now,
+          startedAt: null,
+          updatedAt: now
+        },
+        include: attendanceInclude
+      });
+      await this.writeAuditEvent(tx, "ATTENDANCE_QUEUED", "ATTENDANCE", updated.id, {
+        teamId: updated.teamId,
+        fromAttendantId: attendantId,
+        source: "ATTENDANT_OFFLINE"
+      });
+      queued.push(updated);
+    }
+
+    return { reassigned, queued };
   }
 
   private async pickAvailableAttendant(
@@ -688,6 +962,23 @@ export class PrismaWorkflow
 
   private async lockAttendance(tx: PrismaTransaction, attendanceId: string) {
     await tx.$queryRaw`SELECT id FROM "Attendance" WHERE id = ${attendanceId} FOR UPDATE`;
+  }
+
+  private async writeAuditEvent(
+    tx: PrismaTransaction,
+    type: AuditEventType,
+    entityType: AuditEntityType,
+    entityId: string,
+    payload: Prisma.InputJsonValue
+  ) {
+    await tx.auditEvent.create({
+      data: {
+        type,
+        entityType,
+        entityId,
+        payload
+      }
+    });
   }
 
   private toTeamDto(team: LoadedTeam): TeamDto {
@@ -748,6 +1039,19 @@ export class PrismaWorkflow
       updatedAt: attendance.updatedAt.toISOString()
     };
   }
+
+  private toAuditEventDto(
+    event: Prisma.AuditEventGetPayload<Record<string, never>>
+  ): AuditEventDto {
+    return {
+      id: event.id,
+      type: event.type as AuditEventType,
+      entityType: event.entityType as AuditEntityType,
+      entityId: event.entityId,
+      payload: event.payload,
+      createdAt: event.createdAt.toISOString()
+    };
+  }
 }
 
 export function createPrismaContainer(
@@ -761,6 +1065,8 @@ export function createPrismaContainer(
     attendantWorkflow: workflow,
     teamQueries: workflow,
     dashboardQueries: workflow,
+    auditQueries: workflow,
+    metricsQueries: workflow,
     realtime
   };
 }

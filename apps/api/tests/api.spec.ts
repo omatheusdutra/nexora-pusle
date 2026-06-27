@@ -70,6 +70,39 @@ describe("API", () => {
     expect(response.body.inProgress).toBe(1);
   });
 
+  it("lists audit events for operational actions", async () => {
+    const created = await request(app.server)
+      .post("/api/v1/attendances")
+      .send({
+        customerName: "Cliente Auditoria",
+        subject: "Problemas com cartao"
+      })
+      .expect(201);
+
+    const response = await request(app.server)
+      .get("/api/v1/audit-events")
+      .query({ type: "ATTENDANCE_CREATED" })
+      .expect(200);
+
+    expect(response.body.total).toBe(1);
+    expect(response.body.data[0].entityId).toBe(created.body.attendance.id);
+  });
+
+  it("exposes JSON and Prometheus metrics", async () => {
+    await request(app.server).post("/api/v1/attendances").send({
+      customerName: "Cliente Metricas",
+      subject: "Outros"
+    });
+
+    const json = await request(app.server).get("/api/v1/metrics").expect(200);
+    expect(json.body.totalAttendances).toBe(1);
+    expect(json.body.generatedAt).toBeDefined();
+
+    const prometheus = await request(app.server).get("/metrics").expect(200);
+    expect(prometheus.text).toContain("nexora_attendances_total 1");
+    expect(prometheus.headers["content-type"]).toContain("text/plain");
+  });
+
   it("validates invalid payload", async () => {
     const response = await request(app.server)
       .post("/api/v1/attendances")

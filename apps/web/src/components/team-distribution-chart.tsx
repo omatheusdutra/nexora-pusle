@@ -46,9 +46,9 @@ export function TeamDistributionChart() {
       teamType,
       name:
         teamType === "CARDS"
-          ? "Cartões"
+          ? "Cartoes"
           : teamType === "LOANS"
-            ? "Empréstimos"
+            ? "Emprestimos"
             : "Outros Assuntos",
       fullName: teamName,
       value: counts.get(teamType) ?? 0,
@@ -61,7 +61,7 @@ export function TeamDistributionChart() {
 
   return (
     <DashboardPanel
-      title="Distribuição por time"
+      title="Distribuicao por time"
       eyebrow="Mix operacional"
       icon={<PieChartIcon className="h-4 w-4" />}
       live

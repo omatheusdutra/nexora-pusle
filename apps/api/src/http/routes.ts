@@ -1,12 +1,15 @@
 import type { FastifyInstance } from "fastify";
 import {
+  auditEventQuerySchema,
   attendanceQuerySchema,
   createAttendanceSchema,
   createAttendantSchema,
   updateAttendantStatusSchema
 } from "@flowpay/shared";
+import type { OperationalMetricsDto } from "@flowpay/shared";
 import { z } from "zod";
 import type { AppContainer } from "../application/contracts";
+import { ListAuditEventsUseCase } from "../application/use-cases/audit-use-cases";
 import {
   CancelAttendanceUseCase,
   CreateAttendanceUseCase,
@@ -25,8 +28,10 @@ import {
   GetDashboardSummaryUseCase,
   GetRecentActivityUseCase
 } from "../application/use-cases/dashboard-use-cases";
+import { GetOperationalMetricsUseCase } from "../application/use-cases/metrics-use-cases";
 import { NotFoundError } from "../domain/errors";
 import {
+  auditEventQueryJsonSchema,
   attendanceQueryJsonSchema,
   createAttendanceJsonSchema,
   createAttendantJsonSchema,
@@ -80,6 +85,10 @@ export async function registerRoutes(
   );
   const recentActivity = new GetRecentActivityUseCase(
     container.dashboardQueries
+  );
+  const listAuditEvents = new ListAuditEventsUseCase(container.auditQueries);
+  const operationalMetrics = new GetOperationalMetricsUseCase(
+    container.metricsQueries
   );
 
   app.get(
@@ -301,4 +310,70 @@ export async function registerRoutes(
       return recentActivity.execute(limit);
     }
   );
+
+  app.get(
+    "/api/v1/audit-events",
+    {
+      schema: {
+        tags: ["Audit"],
+        querystring: auditEventQueryJsonSchema
+      }
+    },
+    async (request) => {
+      const query = auditEventQuerySchema.parse(request.query);
+      return listAuditEvents.execute(query);
+    }
+  );
+
+  app.get(
+    "/api/v1/metrics",
+    {
+      schema: {
+        tags: ["Metrics"]
+      }
+    },
+    async () => operationalMetrics.execute()
+  );
+
+  app.get(
+    "/metrics",
+    {
+      schema: {
+        tags: ["Metrics"]
+      }
+    },
+    async (_request, reply) => {
+      const metrics = await operationalMetrics.execute();
+      return reply
+        .type("text/plain; version=0.0.4")
+        .send(formatPrometheusMetrics(metrics));
+    }
+  );
+}
+
+function formatPrometheusMetrics(metrics: OperationalMetricsDto) {
+  return [
+    "# HELP nexora_attendances_total Total attendances recorded.",
+    "# TYPE nexora_attendances_total gauge",
+    `nexora_attendances_total ${metrics.totalAttendances}`,
+    "# HELP nexora_attendances_in_progress Current in-progress attendances.",
+    "# TYPE nexora_attendances_in_progress gauge",
+    `nexora_attendances_in_progress ${metrics.inProgress}`,
+    "# HELP nexora_attendances_queued Current queued attendances.",
+    "# TYPE nexora_attendances_queued gauge",
+    `nexora_attendances_queued ${metrics.queued}`,
+    "# HELP nexora_attendances_finished Finished attendances.",
+    "# TYPE nexora_attendances_finished gauge",
+    `nexora_attendances_finished ${metrics.finished}`,
+    "# HELP nexora_attendants_online Online attendants.",
+    "# TYPE nexora_attendants_online gauge",
+    `nexora_attendants_online ${metrics.onlineAttendants}`,
+    "# HELP nexora_attendants_capacity_used Used attendant capacity.",
+    "# TYPE nexora_attendants_capacity_used gauge",
+    `nexora_attendants_capacity_used ${metrics.usedCapacity}`,
+    "# HELP nexora_average_wait_time_seconds Average wait time in seconds.",
+    "# TYPE nexora_average_wait_time_seconds gauge",
+    `nexora_average_wait_time_seconds ${metrics.averageWaitSeconds}`,
+    ""
+  ].join("\n");
 }

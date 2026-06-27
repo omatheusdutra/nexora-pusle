@@ -19,6 +19,7 @@ export function useRealtimeInvalidation() {
       void queryClient.invalidateQueries({ queryKey: ["dashboard"] });
       void queryClient.invalidateQueries({ queryKey: ["attendants"] });
       void queryClient.invalidateQueries({ queryKey: ["attendances"] });
+      void queryClient.invalidateQueries({ queryKey: ["audit-events"] });
     };
 
     socket.on("connect", () => setConnected(true));

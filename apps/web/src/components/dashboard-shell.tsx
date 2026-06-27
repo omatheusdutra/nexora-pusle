@@ -1,15 +1,18 @@
+import { lazy, Suspense } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { api } from "../lib/api";
 import { useRealtimeInvalidation } from "../hooks/use-realtime";
 import { AppHeader } from "./app-header";
 import { AppSidebar } from "./app-sidebar";
-import { AttendantsPanel } from "./attendants-panel";
 import { CreateAttendanceForm } from "./create-attendance-form";
-import { LoadChart } from "./load-chart";
 import { MetricsGrid } from "./metrics-grid";
-import { QueuesChart } from "./queues-chart";
 import { RecentActivityTable } from "./recent-activity-table";
-import { TeamDistributionChart } from "./team-distribution-chart";
+import { Skeleton } from "./ui/skeleton";
+
+const DashboardCharts = lazy(() => import("./dashboard-charts"));
+const DashboardOperationsColumn = lazy(
+  () => import("./dashboard-operations-column")
+);
 
 export function DashboardShell({
   dark,
@@ -59,23 +62,23 @@ export function DashboardShell({
 
           <section className="grid gap-4 xl:grid-cols-[320px_minmax(0,1fr)] 2xl:grid-cols-[340px_minmax(0,1fr)]">
             <CreateAttendanceForm />
-            <div className="grid gap-4 xl:grid-cols-2">
-              <QueuesChart data={queues.data} loading={queues.isLoading} />
-              <LoadChart
-                data={attendantsLoad.data}
-                loading={attendantsLoad.isLoading}
+            <Suspense fallback={<ChartsFallback />}>
+              <DashboardCharts
+                queues={queues.data}
+                queuesLoading={queues.isLoading}
+                attendantsLoad={attendantsLoad.data}
+                attendantsLoading={attendantsLoad.isLoading}
               />
-            </div>
+            </Suspense>
           </section>
 
           <section className="grid gap-4 xl:grid-cols-[360px_minmax(0,1fr)] 2xl:grid-cols-[400px_minmax(0,1fr)]">
-            <div className="grid gap-4">
-              <TeamDistributionChart />
-              <AttendantsPanel
+            <Suspense fallback={<OperationsFallback />}>
+              <DashboardOperationsColumn
                 attendants={attendantsLoad.data}
                 loading={attendantsLoad.isLoading}
               />
-            </div>
+            </Suspense>
             <RecentActivityTable
               rows={recentActivity.data}
               loading={recentActivity.isLoading}
@@ -83,6 +86,25 @@ export function DashboardShell({
           </section>
         </main>
       </div>
+    </div>
+  );
+}
+
+function ChartsFallback() {
+  return (
+    <div className="grid gap-4 xl:grid-cols-2">
+      <Skeleton className="h-[286px]" />
+      <Skeleton className="h-[286px]" />
+    </div>
+  );
+}
+
+function OperationsFallback() {
+  return (
+    <div className="grid gap-4">
+      <Skeleton className="h-[252px]" />
+      <Skeleton className="h-[252px]" />
+      <Skeleton className="h-96" />
     </div>
   );
 }

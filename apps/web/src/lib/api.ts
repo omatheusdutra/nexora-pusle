@@ -1,4 +1,6 @@
 import type {
+  AuditEventDto,
+  AuditEventQuery,
   AttendantDto,
   AttendantLoadDto,
   AttendanceDto,
@@ -69,6 +71,10 @@ export const api = {
   listAttendances: (query: Partial<AttendanceQuery> = {}) =>
     requestJson<PaginatedResponse<AttendanceDto>>(
       `/attendances${queryString(query)}`
+    ),
+  listAuditEvents: (query: Partial<AuditEventQuery> = {}) =>
+    requestJson<PaginatedResponse<AuditEventDto>>(
+      `/audit-events${queryString(query)}`
     ),
   createAttendance: (input: CreateAttendanceInput) =>
     requestJson<RouteAttendanceResult>("/attendances", {

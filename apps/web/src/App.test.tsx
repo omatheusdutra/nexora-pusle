@@ -67,6 +67,49 @@ describe("App", () => {
         ]);
       }
 
+      if (url.includes("/audit-events")) {
+        return jsonResponse({
+          data: [],
+          page: 1,
+          pageSize: 8,
+          total: 0,
+          totalPages: 0
+        });
+      }
+
+      if (url.includes("/attendances?")) {
+        return jsonResponse({
+          data: [
+            {
+              id: "att-1",
+              customerName: "Maria Silva",
+              subject: "Problemas com cartao",
+              status: "IN_PROGRESS",
+              team: {
+                id: "team-cards",
+                name: "Time Cartoes",
+                type: "CARDS"
+              },
+              teamId: "team-cards",
+              attendantId: "agent-1",
+              attendant: {
+                id: "agent-1",
+                name: "Ana Martins"
+              },
+              queuedAt: new Date().toISOString(),
+              startedAt: new Date().toISOString(),
+              finishedAt: null,
+              createdAt: new Date().toISOString(),
+              updatedAt: new Date().toISOString()
+            }
+          ],
+          page: 1,
+          pageSize: 100,
+          total: 1,
+          totalPages: 1
+        });
+      }
+
       return jsonResponse([
         {
           id: "att-1",
@@ -94,6 +137,6 @@ describe("App", () => {
 
     expect(await screen.findAllByText("Nexora Pulse")).not.toHaveLength(0);
     expect(await screen.findByText("Maria Silva")).toBeInTheDocument();
-    expect(await screen.findAllByText("Ana Martins")).toHaveLength(2);
+    expect(await screen.findByText("Ana Martins")).toBeInTheDocument();
   });
 });

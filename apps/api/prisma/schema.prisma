@@ -68,3 +68,16 @@ model Attendance {
   @@index([teamId, status, queuedAt])
   @@index([attendantId, status])
 }
+
+model AuditEvent {
+  id         String   @id @default(cuid())
+  type       String
+  entityType String
+  entityId   String
+  payload    Json
+  createdAt  DateTime @default(now())
+
+  @@index([type])
+  @@index([entityType, entityId])
+  @@index([createdAt])
+}

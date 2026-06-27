@@ -1,6 +1,10 @@
 import {
   SUBJECT_MATCHERS,
   TEAM_LABELS,
+  type AuditEntityType,
+  type AuditEventDto,
+  type AuditEventQuery,
+  type AuditEventType,
   type AttendantDto,
   type AttendantLoadDto,
   type AttendanceDto,
@@ -12,6 +16,7 @@ import {
   type PaginatedResponse,
   type QueueMetricDto,
   type RecentActivityDto,
+  type OperationalMetricsDto,
   type RouteAttendanceResult,
   type TeamDto,
   type TeamType,
@@ -19,9 +24,11 @@ import {
 } from "@flowpay/shared";
 import type {
   AppContainer,
+  AuditQueries,
   AttendantWorkflow,
   AttendanceWorkflow,
   DashboardQueries,
+  MetricsQueries,
   RealtimePublisher,
   TeamQueries,
   WorkflowEvent,
@@ -69,14 +76,30 @@ interface MemoryAttendance {
   updatedAt: Date;
 }
 
+interface MemoryAuditEvent {
+  id: string;
+  type: AuditEventType;
+  entityType: AuditEntityType;
+  entityId: string;
+  payload: unknown;
+  createdAt: Date;
+}
+
 export class InMemoryWorkflow
-  implements AttendanceWorkflow, AttendantWorkflow, TeamQueries, DashboardQueries
+  implements
+    AttendanceWorkflow,
+    AttendantWorkflow,
+    TeamQueries,
+    DashboardQueries,
+    AuditQueries,
+    MetricsQueries
 {
   private readonly subjectRouter = new SubjectRouter();
   private readonly distributionPolicy = new DistributionPolicy();
   private readonly teams = new Map<string, MemoryTeam>();
   private readonly attendants = new Map<string, MemoryAttendant>();
   private readonly attendances = new Map<string, MemoryAttendance>();
+  private readonly auditEvents = new Map<string, MemoryAuditEvent>();
   private sequence = 0;
 
   constructor() {
@@ -110,6 +133,21 @@ export class InMemoryWorkflow
     }
 
     this.attendances.set(attendance.id, attendance);
+    this.writeAuditEvent("ATTENDANCE_CREATED", "ATTENDANCE", attendance.id, {
+      status: attendance.status,
+      teamId: attendance.teamId,
+      attendantId: attendance.attendantId
+    });
+    this.writeAuditEvent(
+      assignment ? "ATTENDANCE_ASSIGNED" : "ATTENDANCE_QUEUED",
+      "ATTENDANCE",
+      attendance.id,
+      {
+        status: attendance.status,
+        teamId: attendance.teamId,
+        attendantId: attendance.attendantId
+      }
+    );
     const dto = this.toAttendanceDto(attendance);
     const events: WorkflowEvent[] = [
       { name: "attendance.created", payload: dto },
@@ -152,6 +190,18 @@ export class InMemoryWorkflow
     attendance.updatedAt = now;
 
     const next = this.assignNextQueued(attendance.teamId);
+    this.writeAuditEvent("ATTENDANCE_FINISHED", "ATTENDANCE", attendance.id, {
+      teamId: attendance.teamId,
+      attendantId: attendance.attendantId
+    });
+
+    if (next) {
+      this.writeAuditEvent("ATTENDANCE_ASSIGNED", "ATTENDANCE", next.id, {
+        teamId: next.teamId,
+        attendantId: next.attendantId,
+        source: "QUEUE_PULL"
+      });
+    }
     const dto = this.toAttendanceDto(attendance);
     const events: WorkflowEvent[] = [
       { name: "attendance.finished", payload: dto },
@@ -198,6 +248,18 @@ export class InMemoryWorkflow
     attendance.finishedAt = now;
     attendance.updatedAt = now;
     const next = shouldPullNext ? this.assignNextQueued(attendance.teamId) : null;
+    this.writeAuditEvent("ATTENDANCE_CANCELLED", "ATTENDANCE", attendance.id, {
+      teamId: attendance.teamId,
+      attendantId: attendance.attendantId
+    });
+
+    if (next) {
+      this.writeAuditEvent("ATTENDANCE_ASSIGNED", "ATTENDANCE", next.id, {
+        teamId: next.teamId,
+        attendantId: next.attendantId,
+        source: "QUEUE_PULL"
+      });
+    }
     const dto = this.toAttendanceDto(attendance);
     const events: WorkflowEvent[] = [
       { name: "attendance.cancelled", payload: dto },
@@ -293,14 +355,41 @@ export class InMemoryWorkflow
     };
 
     this.attendants.set(attendant.id, attendant);
+    const next = input.isOnline ? this.assignNextQueued(attendant.teamId) : null;
+    this.writeAuditEvent(
+      input.isOnline ? "ATTENDANT_ONLINE" : "ATTENDANT_OFFLINE",
+      "ATTENDANT",
+      attendant.id,
+      {
+        teamId: attendant.teamId,
+        source: "ATTENDANT_CREATED"
+      }
+    );
+
+    if (next) {
+      this.writeAuditEvent("ATTENDANCE_ASSIGNED", "ATTENDANCE", next.id, {
+        teamId: next.teamId,
+        attendantId: next.attendantId,
+        source: "ATTENDANT_ONLINE"
+      });
+    }
     const dto = this.toAttendantDto(attendant);
+    const events: WorkflowEvent[] = [
+      { name: "attendant.updated", payload: dto },
+      { name: "queue.updated", payload: { teamId: attendant.teamId } },
+      { name: "dashboard.updated", payload: {} }
+    ];
+
+    if (next) {
+      events.splice(1, 0, {
+        name: "attendance.assigned",
+        payload: this.toAttendanceDto(next)
+      });
+    }
 
     return {
       data: dto,
-      events: [
-        { name: "attendant.updated", payload: dto },
-        { name: "dashboard.updated", payload: {} }
-      ]
+      events
     };
   }
 
@@ -317,6 +406,27 @@ export class InMemoryWorkflow
     attendant.isOnline = input.isOnline;
     attendant.updatedAt = new Date();
     const next = input.isOnline ? this.assignNextQueued(attendant.teamId) : null;
+    const reassignment = input.isOnline
+      ? { reassigned: [] as MemoryAttendance[], queued: [] as MemoryAttendance[] }
+      : this.reassignActiveAttendancesFromOfflineAttendant(attendant);
+    this.writeAuditEvent(
+      input.isOnline ? "ATTENDANT_ONLINE" : "ATTENDANT_OFFLINE",
+      "ATTENDANT",
+      attendant.id,
+      {
+        teamId: attendant.teamId,
+        reassigned: reassignment.reassigned.length,
+        queued: reassignment.queued.length
+      }
+    );
+
+    if (next) {
+      this.writeAuditEvent("ATTENDANCE_ASSIGNED", "ATTENDANCE", next.id, {
+        teamId: next.teamId,
+        attendantId: next.attendantId,
+        source: "ATTENDANT_ONLINE"
+      });
+    }
     const dto = this.toAttendantDto(attendant);
     const events: WorkflowEvent[] = [
       { name: "attendant.updated", payload: dto },
@@ -328,6 +438,20 @@ export class InMemoryWorkflow
       events.splice(1, 0, {
         name: "attendance.assigned",
         payload: this.toAttendanceDto(next)
+      });
+    }
+
+    for (const reassigned of reassignment.reassigned) {
+      events.splice(1, 0, {
+        name: "attendance.reassigned",
+        payload: this.toAttendanceDto(reassigned)
+      });
+    }
+
+    for (const queued of reassignment.queued) {
+      events.splice(1, 0, {
+        name: "attendance.queued",
+        payload: this.toAttendanceDto(queued)
       });
     }
 
@@ -454,6 +578,43 @@ export class InMemoryWorkflow
       });
   }
 
+  async listAuditEvents(
+    query: AuditEventQuery
+  ): Promise<PaginatedResponse<AuditEventDto>> {
+    const filtered = [...this.auditEvents.values()]
+      .filter((event) => {
+        if (query.type && event.type !== query.type) return false;
+        if (query.entityType && event.entityType !== query.entityType) {
+          return false;
+        }
+        if (query.entityId && event.entityId !== query.entityId) return false;
+        if (query.from && event.createdAt < new Date(query.from)) return false;
+        if (query.to && event.createdAt > new Date(query.to)) return false;
+        return true;
+      })
+      .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+
+    const start = (query.page - 1) * query.pageSize;
+    const data = filtered
+      .slice(start, start + query.pageSize)
+      .map((event) => this.toAuditEventDto(event));
+
+    return {
+      data,
+      page: query.page,
+      pageSize: query.pageSize,
+      total: filtered.length,
+      totalPages: Math.ceil(filtered.length / query.pageSize)
+    };
+  }
+
+  async getOperationalMetrics(): Promise<OperationalMetricsDto> {
+    return {
+      ...(await this.getSummary()),
+      generatedAt: new Date().toISOString()
+    };
+  }
+
   private seed() {
     const now = new Date("2026-01-01T00:00:00.000Z");
     const teamOrder: TeamType[] = ["CARDS", "LOANS", "OTHER"];
@@ -524,6 +685,64 @@ export class InMemoryWorkflow
     nextQueued.startedAt = now;
     nextQueued.updatedAt = now;
     return nextQueued;
+  }
+
+  private reassignActiveAttendancesFromOfflineAttendant(
+    attendant: MemoryAttendant
+  ) {
+    const activeAttendances = [...this.attendances.values()]
+      .filter(
+        (attendance) =>
+          attendance.attendantId === attendant.id &&
+          attendance.status === "IN_PROGRESS"
+      )
+      .sort((a, b) => {
+        const startedDiff =
+          (a.startedAt?.getTime() ?? 0) - (b.startedAt?.getTime() ?? 0);
+        return startedDiff || a.createdAt.getTime() - b.createdAt.getTime();
+      });
+    const reassigned: MemoryAttendance[] = [];
+    const queued: MemoryAttendance[] = [];
+
+    for (const attendance of activeAttendances) {
+      const now = new Date();
+      const previousAttendantId = attendance.attendantId;
+      const assignment = this.pickAvailableAttendant(attendant.teamId);
+
+      if (assignment) {
+        const team = this.mustGetTeam(attendant.teamId);
+        team.roundRobinCursor = assignment.nextCursor;
+        team.updatedAt = now;
+        attendance.attendantId = assignment.attendantId;
+        attendance.updatedAt = now;
+        reassigned.push(attendance);
+        this.writeAuditEvent(
+          "ATTENDANCE_REASSIGNED",
+          "ATTENDANCE",
+          attendance.id,
+          {
+            teamId: attendance.teamId,
+            previousAttendantId,
+            attendantId: assignment.attendantId,
+            reason: "ATTENDANT_OFFLINE"
+          }
+        );
+      } else {
+        attendance.status = "QUEUED";
+        attendance.attendantId = null;
+        attendance.queuedAt = now;
+        attendance.startedAt = null;
+        attendance.updatedAt = now;
+        queued.push(attendance);
+        this.writeAuditEvent("ATTENDANCE_QUEUED", "ATTENDANCE", attendance.id, {
+          teamId: attendance.teamId,
+          previousAttendantId,
+          reason: "ATTENDANT_OFFLINE"
+        });
+      }
+    }
+
+    return { reassigned, queued };
   }
 
   private pickAvailableAttendant(teamId: string) {
@@ -655,6 +874,36 @@ export class InMemoryWorkflow
     };
   }
 
+  private writeAuditEvent(
+    type: AuditEventType,
+    entityType: AuditEntityType,
+    entityId: string,
+    payload: unknown
+  ) {
+    const now = new Date();
+    const event: MemoryAuditEvent = {
+      id: this.nextId("audit"),
+      type,
+      entityType,
+      entityId,
+      payload,
+      createdAt: now
+    };
+    this.auditEvents.set(event.id, event);
+    return event;
+  }
+
+  private toAuditEventDto(event: MemoryAuditEvent): AuditEventDto {
+    return {
+      id: event.id,
+      type: event.type,
+      entityType: event.entityType,
+      entityId: event.entityId,
+      payload: event.payload,
+      createdAt: event.createdAt.toISOString()
+    };
+  }
+
   private nextId(prefix: string) {
     this.sequence += 1;
     return `${prefix}-${this.sequence}`;
@@ -671,6 +920,8 @@ export function createInMemoryContainer(
     attendantWorkflow: workflow,
     teamQueries: workflow,
     dashboardQueries: workflow,
+    auditQueries: workflow,
+    metricsQueries: workflow,
     realtime
   };
 }

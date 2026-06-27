@@ -42,11 +42,11 @@ export function initialsFor(name: string) {
 
 export function displayTeamName(teamName: string, teamType?: TeamType) {
   if (teamType === "CARDS" || teamName.toLowerCase().includes("cart")) {
-    return "Cartões & Disputas";
+    return "Cartoes & Disputas";
   }
 
   if (teamType === "LOANS" || teamName.toLowerCase().includes("emprest")) {
-    return "Crédito & Empréstimos";
+    return "Credito & Emprestimos";
   }
 
   return "Relacionamento Geral";

@@ -26,7 +26,7 @@ export function RecentActivityTable({
       toast.success(result.message);
     },
     onError: (error) => {
-      toast.error(error instanceof Error ? error.message : "Falha na ação");
+      toast.error(error instanceof Error ? error.message : "Falha na acao");
     }
   });
 
@@ -62,7 +62,7 @@ export function RecentActivityTable({
                     Status
                   </th>
                   <th className="border-b border-white/10 px-3 py-2.5 text-right font-semibold">
-                    Ações
+                    Acoes
                   </th>
                 </tr>
               </thead>

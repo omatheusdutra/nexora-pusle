@@ -1,3 +1,5 @@
+import { AUDIT_ENTITY_TYPES, AUDIT_EVENT_TYPES } from "@flowpay/shared";
+
 export const idParamSchema = {
   type: "object",
   required: ["id"],
@@ -49,6 +51,19 @@ export const attendanceQueryJsonSchema = {
     teamId: { type: "string" },
     attendantId: { type: "string" },
     subject: { type: "string" },
+    page: { type: "integer", minimum: 1, default: 1 },
+    pageSize: { type: "integer", minimum: 1, maximum: 100, default: 20 }
+  }
+} as const;
+
+export const auditEventQueryJsonSchema = {
+  type: "object",
+  properties: {
+    type: { type: "string", enum: AUDIT_EVENT_TYPES },
+    entityType: { type: "string", enum: AUDIT_ENTITY_TYPES },
+    entityId: { type: "string" },
+    from: { type: "string", format: "date-time" },
+    to: { type: "string", format: "date-time" },
     page: { type: "integer", minimum: 1, default: 1 },
     pageSize: { type: "integer", minimum: 1, maximum: 100, default: 20 }
   }

@@ -49,7 +49,9 @@ export async function buildApp(
         { name: "Teams" },
         { name: "Attendants" },
         { name: "Attendances" },
-        { name: "Dashboard" }
+        { name: "Dashboard" },
+        { name: "Audit" },
+        { name: "Metrics" }
       ]
     }
   });

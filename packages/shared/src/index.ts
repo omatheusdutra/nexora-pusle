@@ -32,12 +32,32 @@ export const REALTIME_EVENTS = [
   "attendance.queued",
   "attendance.finished",
   "attendance.cancelled",
+  "attendance.reassigned",
   "queue.updated",
   "attendant.updated",
   "dashboard.updated"
 ] as const;
 
 export type RealtimeEventName = (typeof REALTIME_EVENTS)[number];
+
+export const AUDIT_EVENT_TYPES = [
+  "ATTENDANCE_CREATED",
+  "ATTENDANCE_ASSIGNED",
+  "ATTENDANCE_QUEUED",
+  "ATTENDANCE_FINISHED",
+  "ATTENDANCE_CANCELLED",
+  "ATTENDANCE_REASSIGNED",
+  "ATTENDANT_ONLINE",
+  "ATTENDANT_OFFLINE"
+] as const;
+
+export const AUDIT_ENTITY_TYPES = ["ATTENDANCE", "ATTENDANT"] as const;
+
+export const auditEventTypeSchema = z.enum(AUDIT_EVENT_TYPES);
+export const auditEntityTypeSchema = z.enum(AUDIT_ENTITY_TYPES);
+
+export type AuditEventType = z.infer<typeof auditEventTypeSchema>;
+export type AuditEntityType = z.infer<typeof auditEntityTypeSchema>;
 
 export function sanitizeText(value: string): string {
   return [...value]
@@ -102,12 +122,23 @@ export const attendanceQuerySchema = z.object({
   pageSize: z.coerce.number().int().min(1).max(100).default(20)
 });
 
+export const auditEventQuerySchema = z.object({
+  type: auditEventTypeSchema.optional(),
+  entityType: auditEntityTypeSchema.optional(),
+  entityId: z.string().min(1).optional(),
+  from: z.string().datetime().optional(),
+  to: z.string().datetime().optional(),
+  page: z.coerce.number().int().min(1).default(1),
+  pageSize: z.coerce.number().int().min(1).max(100).default(20)
+});
+
 export type CreateAttendanceInput = z.infer<typeof createAttendanceSchema>;
 export type CreateAttendantInput = z.infer<typeof createAttendantSchema>;
 export type UpdateAttendantStatusInput = z.infer<
   typeof updateAttendantStatusSchema
 >;
 export type AttendanceQuery = z.infer<typeof attendanceQuerySchema>;
+export type AuditEventQuery = z.infer<typeof auditEventQuerySchema>;
 
 export interface TeamDto {
   id: string;
@@ -161,6 +192,15 @@ export interface RouteAttendanceResult {
   message: string;
 }
 
+export interface AuditEventDto {
+  id: string;
+  type: AuditEventType;
+  entityType: AuditEntityType;
+  entityId: string;
+  payload: unknown;
+  createdAt: string;
+}
+
 export interface DashboardSummaryDto {
   totalAttendances: number;
   inProgress: number;
@@ -172,6 +212,10 @@ export interface DashboardSummaryDto {
   usedCapacity: number;
   capacityUtilization: number;
   averageWaitSeconds: number;
+}
+
+export interface OperationalMetricsDto extends DashboardSummaryDto {
+  generatedAt: string;
 }
 
 export interface QueueMetricDto {

@@ -58,7 +58,7 @@ export function LoadChart({
                 Baixa
               </span>
               <span className="rounded-full border border-warning/25 bg-warning/10 px-2 py-1">
-                Média
+                Media
               </span>
               <span className="rounded-full border border-destructive/25 bg-destructive/10 px-2 py-1">
                 Alta
