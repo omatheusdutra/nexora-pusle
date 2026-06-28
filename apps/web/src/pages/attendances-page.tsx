@@ -29,7 +29,7 @@ export function AttendancesPage() {
   return (
     <main className="grid gap-3 px-4 py-3 sm:px-5 xl:px-6">
       <PageHeader
-        eyebrow="Operacao"
+        eyebrow="Operação"
         title="Atendimentos"
         description="Acompanhe a esteira completa de clientes, status, times e responsaveis em tempo real."
         action={

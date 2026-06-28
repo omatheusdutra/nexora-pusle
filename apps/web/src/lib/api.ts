@@ -15,7 +15,10 @@ import type {
   QueueMetricDto,
   RecentActivityDto,
   RouteAttendanceResult,
-  TeamDto
+  TeamDto,
+  UpdateOwnProfileInput,
+  UpdateUserInput,
+  UserDto
 } from "@flowpay/shared";
 
 const API_BASE_URL =
@@ -43,7 +46,10 @@ async function requestJson<T>(path: string, init?: RequestInit): Promise<T> {
 
   if (!response.ok) {
     const body = await response.json().catch(() => null);
-    throw new ApiError(body?.error ?? "API request failed", response.status);
+    throw new ApiError(
+      body?.error ?? "Não foi possível concluir a requisição",
+      response.status
+    );
   }
 
   return response.json() as Promise<T>;
@@ -76,6 +82,17 @@ export const api = {
   createUser: (input: CreateUserInput) =>
     requestJson<{ user: AuthUserDto }>("/users", {
       method: "POST",
+      body: JSON.stringify(input)
+    }),
+  getUsers: () => requestJson<{ users: UserDto[] }>("/users"),
+  updateCurrentUser: (input: UpdateOwnProfileInput) =>
+    requestJson<{ user: UserDto }>("/users/me", {
+      method: "PATCH",
+      body: JSON.stringify(input)
+    }),
+  updateUser: (id: string, input: UpdateUserInput) =>
+    requestJson<{ user: UserDto }>(`/users/${id}`, {
+      method: "PATCH",
       body: JSON.stringify(input)
     }),
   getTeams: () => requestJson<TeamDto[]>("/teams"),

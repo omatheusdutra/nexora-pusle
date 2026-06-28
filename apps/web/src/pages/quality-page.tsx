@@ -41,13 +41,13 @@ export function QualityPage() {
       <PageHeader
         eyebrow="Governanca"
         title="Qualidade"
-        description="Acompanhe conclusao, cancelamentos, reatribuicoes e trilha de auditoria em tempo real."
+        description="Acompanhe conclusão, cancelamentos, reatribuições e trilha de auditoria em tempo real."
       />
 
       <section className="grid gap-3 md:grid-cols-3">
         <QualityMetric
           icon={<CheckCircle2 className="h-4 w-4" />}
-          label="Taxa de conclusao"
+          label="Taxa de conclusão"
           value={`${Math.round((finished / total) * 100)}%`}
           tone="success"
         />

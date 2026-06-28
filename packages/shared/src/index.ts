@@ -21,14 +21,14 @@ export type UserRole = z.infer<typeof userRoleSchema>;
 export type UserStatus = z.infer<typeof userStatusSchema>;
 
 export const TEAM_LABELS: Record<TeamType, string> = {
-  CARDS: "Time Cartoes",
-  LOANS: "Time Emprestimos",
+  CARDS: "Time Cartões",
+  LOANS: "Time Empréstimos",
   OTHER: "Time Outros Assuntos"
 };
 
 export const SUBJECT_MATCHERS: Record<TeamType, string> = {
-  CARDS: "Problemas com cartao",
-  LOANS: "Contratacao de emprestimo",
+  CARDS: "Problemas com cartão",
+  LOANS: "Contratação de empréstimo",
   OTHER: "Outros assuntos"
 };
 
@@ -99,18 +99,40 @@ export function resolveSubjectTeamType(subject: string): TeamType {
 
 const sanitizedString = (field: string, min = 1, max = 160) =>
   z
-    .string({ required_error: `${field} is required` })
+    .string({ required_error: `${field} é obrigatório` })
     .transform(sanitizeText)
-    .pipe(z.string().min(min).max(max));
+    .pipe(
+      z
+        .string()
+        .min(min, `${field} deve conter pelo menos ${min} caracteres`)
+        .max(max, `${field} deve conter no máximo ${max} caracteres`)
+    );
+
+const emailSchema = z
+  .string({ required_error: "E-mail é obrigatório" })
+  .email("Informe um e-mail válido")
+  .trim()
+  .toLowerCase();
+
+const passwordSchema = z
+  .string({ required_error: "Senha é obrigatória" })
+  .min(10, "A senha deve conter pelo menos 10 caracteres")
+  .max(160, "A senha deve conter no máximo 160 caracteres");
+
+const optionalPasswordSchema = z.preprocess(
+  (value) =>
+    typeof value === "string" && value.trim() === "" ? undefined : value,
+  passwordSchema.optional()
+);
 
 export const createAttendanceSchema = z.object({
-  customerName: sanitizedString("customerName", 2, 120),
-  subject: sanitizedString("subject", 2, 140)
+  customerName: sanitizedString("Cliente", 2, 120),
+  subject: sanitizedString("Assunto", 2, 140)
 });
 
 export const createAttendantSchema = z.object({
-  name: sanitizedString("name", 2, 120),
-  teamId: z.string().min(1),
+  name: sanitizedString("Nome", 2, 120),
+  teamId: z.string().min(1, "Time é obrigatório"),
   isOnline: z.boolean().default(true),
   maxConcurrentAttendances: z.coerce.number().int().min(1).max(10).default(3)
 });
@@ -120,16 +142,35 @@ export const updateAttendantStatusSchema = z.object({
 });
 
 export const loginSchema = z.object({
-  email: z.string().email().trim().toLowerCase(),
-  password: z.string().min(1).max(160)
+  email: emailSchema,
+  password: z.string().min(1, "Senha é obrigatória").max(160)
 });
 
 export const createUserSchema = z.object({
-  name: sanitizedString("name", 2, 120),
-  email: z.string().email().trim().toLowerCase(),
-  password: z.string().min(10).max(160),
+  name: sanitizedString("Nome", 2, 120),
+  email: emailSchema,
+  password: passwordSchema,
   role: userRoleSchema.default("SUPERVISOR")
 });
+
+export const updateOwnProfileSchema = z.object({
+  name: sanitizedString("Nome", 2, 120),
+  email: emailSchema,
+  password: optionalPasswordSchema
+});
+
+export const updateUserSchema = z
+  .object({
+    name: sanitizedString("Nome", 2, 120).optional(),
+    email: emailSchema.optional(),
+    password: optionalPasswordSchema,
+    role: userRoleSchema.optional(),
+    status: userStatusSchema.optional()
+  })
+  .refine(
+    (input) => Object.values(input).some((value) => value !== undefined),
+    "Informe ao menos um campo para atualizar"
+  );
 
 export const attendanceQuerySchema = z.object({
   status: attendanceStatusSchema.optional(),
@@ -157,6 +198,8 @@ export type UpdateAttendantStatusInput = z.infer<
 >;
 export type LoginInput = z.infer<typeof loginSchema>;
 export type CreateUserInput = z.infer<typeof createUserSchema>;
+export type UpdateOwnProfileInput = z.infer<typeof updateOwnProfileSchema>;
+export type UpdateUserInput = z.infer<typeof updateUserSchema>;
 export type AttendanceQuery = z.infer<typeof attendanceQuerySchema>;
 export type AuditEventQuery = z.infer<typeof auditEventQuerySchema>;
 
@@ -169,6 +212,13 @@ export interface AuthUserDto {
 
 export interface LoginResponseDto {
   user: AuthUserDto;
+}
+
+export interface UserDto extends AuthUserDto {
+  status: UserStatus;
+  lastLoginAt: string | null;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface TeamDto {

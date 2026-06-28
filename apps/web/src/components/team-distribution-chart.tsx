@@ -46,9 +46,9 @@ export function TeamDistributionChart() {
       teamType,
       name:
         teamType === "CARDS"
-          ? "Cartoes"
+          ? "Cartões"
           : teamType === "LOANS"
-            ? "Emprestimos"
+            ? "Empréstimos"
             : "Outros Assuntos",
       fullName: teamName,
       value: counts.get(teamType) ?? 0,

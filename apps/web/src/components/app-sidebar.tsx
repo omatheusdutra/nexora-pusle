@@ -9,6 +9,7 @@ import {
   Settings,
   ShieldCheck,
   Sparkles,
+  UserRound,
   UserPlus,
   UsersRound
 } from "lucide-react";
@@ -20,15 +21,16 @@ import { Button } from "./ui/button";
 import { cn } from "../lib/utils";
 
 const navItems = [
-  { label: "Visao Geral", path: "/dashboard", Icon: LayoutDashboard },
+  { label: "Visão Geral", path: "/dashboard", Icon: LayoutDashboard },
   { label: "Atendimentos", path: "/attendances", Icon: Headphones },
   { label: "Fila & Rotas", path: "/queues", Icon: RouteIcon },
   { label: "Atendentes", path: "/attendants", Icon: UsersRound },
   { label: "Clientes", path: "/clients", Icon: Building2 },
-  { label: "Relatorios", path: "/reports", Icon: BarChart3 },
+  { label: "Relatórios", path: "/reports", Icon: BarChart3 },
   { label: "Qualidade", path: "/quality", Icon: ShieldCheck },
-  { label: "Configuracoes", path: "/settings", Icon: Settings },
-  { label: "Usuarios", path: "/users", Icon: UserPlus, adminOnly: true }
+  { label: "Configurações", path: "/settings", Icon: Settings },
+  { label: "Meu perfil", path: "/profile", Icon: UserRound },
+  { label: "Usuários", path: "/users", Icon: UserPlus, adminOnly: true }
 ];
 
 export function AppSidebar({
@@ -64,7 +66,7 @@ export function AppSidebar({
               Nexora Pulse
             </div>
             <div className="truncate text-[10px] text-muted-foreground">
-              AI Operations Command Center
+              Centro de Operações
             </div>
           </div>
         ) : null}

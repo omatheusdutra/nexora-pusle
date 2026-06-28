@@ -1,4 +1,4 @@
-import type { FastifyInstance, FastifyRequest } from "fastify";
+import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
 import {
   auditEventQuerySchema,
   attendanceQuerySchema,
@@ -6,11 +6,15 @@ import {
   createAttendanceSchema,
   createAttendantSchema,
   loginSchema,
+  updateOwnProfileSchema,
+  updateUserSchema,
   updateAttendantStatusSchema
 } from "@flowpay/shared";
 import type {
   AuthUserDto,
   OperationalMetricsDto,
+  UpdateOwnProfileInput,
+  UpdateUserInput,
   UserRole
 } from "@flowpay/shared";
 import { z } from "zod";
@@ -87,6 +91,29 @@ const createUserJsonSchema = {
     email: { type: "string", format: "email" },
     password: { type: "string", minLength: 10, maxLength: 160 },
     role: { type: "string", enum: ["ADMIN", "SUPERVISOR"] }
+  },
+  additionalProperties: false
+};
+
+const updateOwnProfileJsonSchema = {
+  type: "object",
+  required: ["name", "email"],
+  properties: {
+    name: { type: "string", minLength: 2, maxLength: 120 },
+    email: { type: "string", format: "email" },
+    password: { type: "string", maxLength: 160 }
+  },
+  additionalProperties: false
+};
+
+const updateUserJsonSchema = {
+  type: "object",
+  properties: {
+    name: { type: "string", minLength: 2, maxLength: 120 },
+    email: { type: "string", format: "email" },
+    password: { type: "string", maxLength: 160 },
+    role: { type: "string", enum: ["ADMIN", "SUPERVISOR"] },
+    status: { type: "string", enum: ["ACTIVE", "INACTIVE"] }
   },
   additionalProperties: false
 };
@@ -175,6 +202,42 @@ export async function registerRoutes(
     };
   const authenticated = { preHandler: requireAuth };
   const adminOnly = { preHandler: requireRole("ADMIN") };
+  const persistUserUpdate = async (
+    id: string,
+    input: UpdateOwnProfileInput | UpdateUserInput
+  ) => {
+    const current = await container.userRepository.findById(id);
+
+    if (!current) {
+      throw new NotFoundError("Usuário");
+    }
+
+    if (input.email && input.email !== current.email) {
+      const existingUser = await container.userRepository.findByEmail(
+        input.email
+      );
+
+      if (existingUser && existingUser.id !== id) {
+        throw new ConflictError("E-mail já está em uso");
+      }
+    }
+
+    const { password, ...profile } = input;
+    return container.userRepository.updateUser(id, {
+      ...profile,
+      passwordHash: password ? await hashPassword(password) : undefined
+    });
+  };
+  const sendUserWithFreshSession = (
+    reply: FastifyReply,
+    user: AuthUserDto
+  ) => {
+    const token = createSessionToken(user, authConfig);
+    return reply.header(
+      "Set-Cookie",
+      serializeSessionCookie(token, authConfig)
+    );
+  };
 
   app.get(
     "/",
@@ -294,7 +357,7 @@ export async function registerRoutes(
       );
 
       if (existingUser) {
-        throw new ConflictError("User e-mail already exists");
+        throw new ConflictError("E-mail já está em uso");
       }
 
       const user = await container.userRepository.createUser({
@@ -303,6 +366,67 @@ export async function registerRoutes(
       });
 
       return reply.status(201).send({ user });
+    }
+  );
+
+  app.get(
+    "/api/v1/users",
+    {
+      ...adminOnly,
+      schema: {
+        tags: ["Users"]
+      }
+    },
+    async () => ({ users: await container.userRepository.listUsers() })
+  );
+
+  app.patch(
+    "/api/v1/users/me",
+    {
+      ...authenticated,
+      schema: {
+        tags: ["Users"],
+        body: updateOwnProfileJsonSchema
+      }
+    },
+    async (request, reply) => {
+      const input = updateOwnProfileSchema.parse(request.body);
+      const updatedUser = await persistUserUpdate(request.authUser!.id, input);
+      const authUser = toAuthUser(updatedUser);
+
+      sendUserWithFreshSession(reply, authUser);
+      return { user: updatedUser };
+    }
+  );
+
+  app.patch(
+    "/api/v1/users/:id",
+    {
+      ...authenticated,
+      schema: {
+        tags: ["Users"],
+        params: idParamSchema,
+        body: updateUserJsonSchema
+      }
+    },
+    async (request, reply) => {
+      const { id } = idParams.parse(request.params);
+      const canEditAnyUser = request.authUser?.role === "ADMIN";
+
+      if (!canEditAnyUser && request.authUser?.id !== id) {
+        throw new ForbiddenError();
+      }
+
+      const input = canEditAnyUser
+        ? updateUserSchema.parse(request.body)
+        : updateOwnProfileSchema.parse(request.body);
+      const updatedUser = await persistUserUpdate(id, input);
+
+      if (request.authUser?.id === id) {
+        sendUserWithFreshSession(reply, toAuthUser(updatedUser));
+      }
+
+      return { user: updatedUser };
     }
   );
 

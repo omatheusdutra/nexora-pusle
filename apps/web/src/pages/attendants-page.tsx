@@ -25,7 +25,7 @@ export function AttendantsPage() {
       <PageHeader
         eyebrow="Workforce"
         title="Atendentes"
-        description="Controle disponibilidade, ocupacao e distribuicao da equipe por time."
+        description="Controle disponibilidade, ocupação e distribuição da equipe por time."
       />
 
       <section className="grid gap-3 xl:grid-cols-[360px_minmax(0,1fr)]">

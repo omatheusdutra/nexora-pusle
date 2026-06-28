@@ -17,7 +17,8 @@ import type {
   AttendantLoadDto,
   TeamDto,
   RealtimeEventName,
-  UserStatus,
+  UpdateUserInput,
+  UserDto,
   UpdateAttendantStatusInput
 } from "@flowpay/shared";
 
@@ -75,23 +76,26 @@ export interface MetricsQueries {
   getOperationalMetrics(): Promise<OperationalMetricsDto>;
 }
 
-export interface UserRecord extends AuthUserDto {
+export interface UserRecord extends UserDto {
   passwordHash: string;
-  status: UserStatus;
-  lastLoginAt: string | null;
-  createdAt: string;
-  updatedAt: string;
 }
 
 export interface CreateUserRecordInput extends CreateUserInput {
   passwordHash: string;
 }
 
+export interface UpdateUserRecordInput
+  extends Omit<UpdateUserInput, "password"> {
+  passwordHash?: string;
+}
+
 export interface UserRepository {
+  listUsers(): Promise<UserDto[]>;
   findByEmail(email: string): Promise<UserRecord | null>;
   findById(id: string): Promise<UserRecord | null>;
   updateLastLogin(id: string, date: Date): Promise<void>;
   createUser(input: CreateUserRecordInput): Promise<AuthUserDto>;
+  updateUser(id: string, input: UpdateUserRecordInput): Promise<UserDto>;
 }
 
 export interface RealtimePublisher {

@@ -64,7 +64,7 @@ describe("App", () => {
         return jsonResponse([
           {
             teamId: "team-cards",
-            teamName: "Time Cartoes",
+            teamName: "Time Cartões",
             teamType: "CARDS",
             queued: 1,
             oldestQueuedAt: new Date().toISOString()
@@ -78,7 +78,7 @@ describe("App", () => {
             attendantId: "agent-1",
             name: "Ana Martins",
             teamId: "team-cards",
-            teamName: "Time Cartoes",
+            teamName: "Time Cartões",
             teamType: "CARDS",
             isOnline: true,
             currentLoad: 1,
@@ -104,11 +104,11 @@ describe("App", () => {
             {
               id: "att-1",
               customerName: "Maria Silva",
-              subject: "Problemas com cartao",
+              subject: "Problemas com cartão",
               status: "IN_PROGRESS",
               team: {
                 id: "team-cards",
-                name: "Time Cartoes",
+                name: "Time Cartões",
                 type: "CARDS"
               },
               teamId: "team-cards",
@@ -135,9 +135,9 @@ describe("App", () => {
         {
           id: "att-1",
           customerName: "Maria Silva",
-          subject: "Problemas com cartao",
+          subject: "Problemas com cartão",
           status: "IN_PROGRESS",
-          teamName: "Time Cartoes",
+          teamName: "Time Cartões",
           attendantName: "Ana Martins",
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString()
@@ -172,7 +172,7 @@ describe("App", () => {
       if (url.includes("/auth/me")) {
         return errorResponse(401, {
           code: "UNAUTHENTICATED",
-          error: "Authentication required"
+          error: "Autenticação obrigatória"
         });
       }
 

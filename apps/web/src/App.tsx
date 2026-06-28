@@ -11,6 +11,7 @@ import { AttendantsPage } from "./pages/attendants-page";
 import { ClientsPage } from "./pages/clients-page";
 import { DashboardPage } from "./pages/dashboard-page";
 import { LoginPage } from "./pages/login-page";
+import { ProfilePage } from "./pages/profile-page";
 import { QualityPage } from "./pages/quality-page";
 import { QueuesPage } from "./pages/queues-page";
 import { ReportsPage } from "./pages/reports-page";
@@ -62,6 +63,7 @@ export default function App() {
                 <Route path="queues" element={<QueuesPage />} />
                 <Route path="attendants" element={<AttendantsPage />} />
                 <Route path="clients" element={<ClientsPage />} />
+                <Route path="profile" element={<ProfilePage />} />
                 <Route path="reports" element={<ReportsPage />} />
                 <Route path="quality" element={<QualityPage />} />
                 <Route path="settings" element={<SettingsPage />} />

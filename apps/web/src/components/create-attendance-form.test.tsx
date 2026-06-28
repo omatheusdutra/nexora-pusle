@@ -30,11 +30,11 @@ describe("CreateAttendanceForm", () => {
       json: () =>
         Promise.resolve({
           result: "ASSIGNED",
-          message: "Attendance assigned automatically",
+          message: "Atendimento atribuído automaticamente",
           attendance: {
             id: "att-1",
             customerName: "Maria Silva",
-            subject: "Problemas com cartao",
+            subject: "Problemas com cartão",
             status: "IN_PROGRESS"
           }
         })

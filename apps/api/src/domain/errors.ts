@@ -17,7 +17,15 @@ export class AppError extends Error {
 
 export class NotFoundError extends AppError {
   constructor(resource: string) {
-    super(`${resource} not found`, {
+    const labels: Record<string, string> = {
+      Attendance: "Atendimento",
+      Attendant: "Atendente",
+      Team: "Time",
+      User: "Usuário",
+      Usuário: "Usuário"
+    };
+
+    super(`${labels[resource] ?? resource} não encontrado`, {
       statusCode: 404,
       code: "NOT_FOUND"
     });
@@ -34,7 +42,7 @@ export class ConflictError extends AppError {
 }
 
 export class UnauthorizedError extends AppError {
-  constructor(message = "Authentication required") {
+  constructor(message = "Autenticação obrigatória") {
     super(message, {
       statusCode: 401,
       code: "UNAUTHENTICATED"
@@ -43,7 +51,7 @@ export class UnauthorizedError extends AppError {
 }
 
 export class ForbiddenError extends AppError {
-  constructor(message = "Insufficient permissions") {
+  constructor(message = "Permissão insuficiente") {
     super(message, {
       statusCode: 403,
       code: "FORBIDDEN"

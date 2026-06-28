@@ -53,10 +53,10 @@ export function AppHeader({
             </div>
             <div className="mt-1 hidden lg:block">
               <h1 className="truncate text-xl font-semibold tracking-normal">
-                Centro Inteligente de Operacoes
+                Centro Inteligente de Operações
               </h1>
               <p className="text-xs text-muted-foreground">
-                AI Operations Command Center
+                Centro de Operações com IA
               </p>
             </div>
           </div>
@@ -109,18 +109,26 @@ export function AppHeader({
               <span className="absolute right-1.5 top-1.5 h-2 w-2 rounded-full bg-warning shadow-[0_0_12px_hsl(var(--warning))]" />
             </Button>
             <ThemeToggle dark={dark} onToggle={onToggleTheme} />
-            <div className="hidden h-9 items-center gap-2 rounded-md border border-border bg-background/60 px-2 shadow-inset sm:flex dark:border-white/10 dark:bg-white/6">
-              <div className="grid h-7 w-7 place-items-center rounded-sm border border-primary/20 bg-primary/15 text-primary">
-                <UserRound className="h-4 w-4" />
-              </div>
-              <div className="min-w-0 pr-1">
-                <div className="truncate text-xs font-semibold">
-                  {user?.name ?? "Usuário"}
+            <div className="hidden items-center gap-1 sm:flex">
+              <button
+                type="button"
+                title="Editar meu perfil"
+                aria-label="Editar meu perfil"
+                onClick={() => navigate("/profile")}
+                className="flex h-9 min-w-[178px] max-w-[260px] items-center gap-2 rounded-md border border-border bg-background/60 px-2 text-left shadow-inset transition hover:border-primary/35 hover:bg-primary/8 dark:border-white/10 dark:bg-white/6"
+              >
+                <div className="grid h-7 w-7 shrink-0 place-items-center rounded-sm border border-primary/20 bg-primary/15 text-primary">
+                  <UserRound className="h-4 w-4" />
                 </div>
-                <div className="text-[11px] text-muted-foreground">
-                  {user?.role ?? "OPERATIONS"}
+                <div className="min-w-0 flex-1 pr-1">
+                  <div className="truncate text-xs font-semibold">
+                    {user?.name ?? "Usuário"}
+                  </div>
+                  <div className="truncate text-[11px] text-muted-foreground">
+                    {user?.role ?? "OPERATIONS"}
+                  </div>
                 </div>
-              </div>
+              </button>
               <Button
                 type="button"
                 variant="ghost"

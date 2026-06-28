@@ -18,6 +18,7 @@ import type {
   RouteAttendanceResult,
   TeamDto,
   TeamType,
+  UserDto,
   UserStatus,
   UpdateAttendantStatusInput
 } from "@flowpay/shared";
@@ -32,6 +33,7 @@ import type {
   RealtimePublisher,
   TeamQueries,
   CreateUserRecordInput,
+  UpdateUserRecordInput,
   UserRecord,
   UserRepository,
   WorkflowEvent,
@@ -157,8 +159,8 @@ export class PrismaWorkflow
         attendance: dto,
         result: result.assigned ? "ASSIGNED" : "QUEUED",
         message: result.assigned
-          ? "Attendance assigned automatically"
-          : "Attendance queued because team capacity is full"
+          ? "Atendimento atribuído automaticamente"
+          : "Atendimento entrou na fila porque o time está sem capacidade"
       },
       events
     };
@@ -187,7 +189,9 @@ export class PrismaWorkflow
       }
 
       if (attendance.status !== "IN_PROGRESS") {
-        throw new ConflictError("Only in-progress attendances can be finished");
+        throw new ConflictError(
+          "Somente atendimentos em andamento podem ser finalizados"
+        );
       }
 
       await this.lockTeamForAssignment(tx, attendance.teamId);
@@ -235,7 +239,7 @@ export class PrismaWorkflow
           attendance: dto,
           assignedAttendance: null,
           result: "UNCHANGED",
-          message: "Attendance already finished"
+          message: "Atendimento já finalizado"
         },
         events: []
       };
@@ -263,8 +267,8 @@ export class PrismaWorkflow
         assignedAttendance: assignedDto,
         result: "FINISHED",
         message: assignedDto
-          ? "Attendance finished and next queued attendance assigned"
-          : "Attendance finished"
+          ? "Atendimento finalizado e próximo atendimento da fila atribuído"
+          : "Atendimento finalizado"
       },
       events
     };
@@ -293,7 +297,9 @@ export class PrismaWorkflow
       }
 
       if (attendance.status === "FINISHED") {
-        throw new ConflictError("Finished attendances cannot be cancelled");
+        throw new ConflictError(
+          "Atendimentos finalizados não podem ser cancelados"
+        );
       }
 
       const shouldPullNext = attendance.status === "IN_PROGRESS";
@@ -350,7 +356,7 @@ export class PrismaWorkflow
           attendance: dto,
           assignedAttendance: null,
           result: "UNCHANGED",
-          message: "Attendance already cancelled"
+          message: "Atendimento já cancelado"
         },
         events: []
       };
@@ -378,8 +384,8 @@ export class PrismaWorkflow
         assignedAttendance: assignedDto,
         result: "CANCELLED",
         message: assignedDto
-          ? "Attendance cancelled and next queued attendance assigned"
-          : "Attendance cancelled"
+          ? "Atendimento cancelado e próximo atendimento da fila atribuído"
+          : "Atendimento cancelado"
       },
       events
     };
@@ -807,6 +813,14 @@ export class PrismaWorkflow
     return user ? this.toUserRecord(user) : null;
   }
 
+  async listUsers(): Promise<UserDto[]> {
+    const users = await this.prisma.user.findMany({
+      orderBy: [{ role: "asc" }, { name: "asc" }]
+    });
+
+    return users.map((user) => this.toUserDto(user));
+  }
+
   async findById(id: string): Promise<UserRecord | null> {
     const user = await this.prisma.user.findUnique({
       where: { id }
@@ -833,6 +847,24 @@ export class PrismaWorkflow
     });
 
     return this.toAuthUserDto(user);
+  }
+
+  async updateUser(
+    id: string,
+    input: UpdateUserRecordInput
+  ): Promise<UserDto> {
+    const user = await this.prisma.user.update({
+      where: { id },
+      data: {
+        name: input.name,
+        email: input.email,
+        passwordHash: input.passwordHash,
+        role: input.role,
+        status: input.status
+      }
+    });
+
+    return this.toUserDto(user);
   }
 
   private async assignNextQueued(tx: PrismaTransaction, teamId: string) {
@@ -1105,14 +1137,20 @@ export class PrismaWorkflow
     };
   }
 
-  private toUserRecord(user: LoadedUser): UserRecord {
+  private toUserDto(user: LoadedUser): UserDto {
     return {
       ...this.toAuthUserDto(user),
-      passwordHash: user.passwordHash,
       status: user.status as UserStatus,
       lastLoginAt: user.lastLoginAt?.toISOString() ?? null,
       createdAt: user.createdAt.toISOString(),
       updatedAt: user.updatedAt.toISOString()
+    };
+  }
+
+  private toUserRecord(user: LoadedUser): UserRecord {
+    return {
+      ...this.toUserDto(user),
+      passwordHash: user.passwordHash,
     };
   }
 }

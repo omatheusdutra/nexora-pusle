@@ -139,6 +139,85 @@ describe("API", () => {
     expect(response.body.code).toBe("FORBIDDEN");
   });
 
+  it("lists users for admin sessions", async () => {
+    const cookie = await login();
+    const response = await request(app.server)
+      .get("/api/v1/users")
+      .set("Cookie", cookie)
+      .expect(200);
+
+    expect(response.body.users).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ email: "admin@nexora.local", role: "ADMIN" }),
+        expect.objectContaining({
+          email: "supervisor@nexora.local",
+          role: "SUPERVISOR"
+        })
+      ])
+    );
+  });
+
+  it("updates the authenticated user's own profile", async () => {
+    const cookie = await login("supervisor@nexora.local", "Supervisor@12345");
+    const response = await request(app.server)
+      .patch("/api/v1/users/me")
+      .set("Cookie", cookie)
+      .send({
+        name: "Mariana Costa Atualizada",
+        email: "mariana@nexora.local",
+        password: ""
+      })
+      .expect(200);
+
+    expect(response.body.user).toMatchObject({
+      name: "Mariana Costa Atualizada",
+      email: "mariana@nexora.local",
+      role: "SUPERVISOR"
+    });
+    expect(setCookies(response)[0]).toContain("HttpOnly");
+  });
+
+  it("forbids supervisors from editing another user profile", async () => {
+    const admin = await container.userRepository.findByEmail(
+      "admin@nexora.local"
+    );
+    const cookie = await login("supervisor@nexora.local", "Supervisor@12345");
+    const response = await request(app.server)
+      .patch(`/api/v1/users/${admin?.id}`)
+      .set("Cookie", cookie)
+      .send({
+        name: "Lucas Almeida",
+        email: "admin@nexora.local"
+      })
+      .expect(403);
+
+    expect(response.body.code).toBe("FORBIDDEN");
+  });
+
+  it("lets admins edit any user profile", async () => {
+    const supervisor = await container.userRepository.findByEmail(
+      "supervisor@nexora.local"
+    );
+    const cookie = await login();
+    const response = await request(app.server)
+      .patch(`/api/v1/users/${supervisor?.id}`)
+      .set("Cookie", cookie)
+      .send({
+        name: "Mariana Costa Operações",
+        email: "supervisor@nexora.local",
+        role: "SUPERVISOR",
+        status: "ACTIVE"
+      })
+      .expect(200);
+
+    expect(response.body.user).toMatchObject({
+      name: "Mariana Costa Operações",
+      email: "supervisor@nexora.local",
+      role: "SUPERVISOR",
+      status: "ACTIVE"
+    });
+  });
+
   it("stores demo user passwords as hashes", async () => {
     const user = await container.userRepository.findByEmail(
       "admin@nexora.local"

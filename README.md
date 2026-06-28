@@ -97,10 +97,10 @@ Segurança aplicada:
 
 Papéis disponíveis:
 
-- `ADMIN`: acessa tudo, cria usuários, cria atendentes e altera status de atendentes.
-- `SUPERVISOR`: acessa dashboard, filas, atendentes, clientes, relatórios, qualidade e fluxo operacional de atendimentos.
+- `ADMIN`: acessa tudo, cria usuários, edita qualquer perfil, cria atendentes e altera status de atendentes.
+- `SUPERVISOR`: acessa dashboard, filas, atendentes, clientes, relatórios, qualidade, fluxo operacional de atendimentos e edita apenas o próprio perfil.
 
-No frontend, o menu `Usuários` aparece apenas para `ADMIN` e permite cadastrar novos supervisores.
+No frontend, o menu `Meu perfil` aparece para todos os usuários autenticados. O menu `Usuários` aparece apenas para `ADMIN` e permite cadastrar novos supervisores, listar perfis e editar dados, papel e status dos usuários.
 
 Credenciais demo locais:
 

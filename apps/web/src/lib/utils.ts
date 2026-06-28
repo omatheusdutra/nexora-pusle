@@ -42,11 +42,11 @@ export function initialsFor(name: string) {
 
 export function displayTeamName(teamName: string, teamType?: TeamType) {
   if (teamType === "CARDS" || teamName.toLowerCase().includes("cart")) {
-    return "Cartoes & Disputas";
+    return "Cartões & Disputas";
   }
 
   if (teamType === "LOANS" || teamName.toLowerCase().includes("emprest")) {
-    return "Credito & Emprestimos";
+    return "Crédito & Empréstimos";
   }
 
   return "Relacionamento Geral";
@@ -83,23 +83,23 @@ export function teamTone(teamName: string, teamType?: TeamType) {
 }
 
 export const professionalSubjects = [
-  "Problemas com cartao",
-  "Contestacao de compra",
-  "Cartao bloqueado preventivamente",
-  "Segunda via de cartao",
-  "Compra nao reconhecida",
+  "Problemas com cartão",
+  "Contestação de compra",
+  "Cartão bloqueado preventivamente",
+  "Segunda via de cartão",
+  "Compra não reconhecida",
   "Limite emergencial",
-  "Falha em pagamento por aproximacao",
-  "Contratacao de emprestimo",
-  "Simulacao de credito pessoal",
-  "Analise de proposta PJ",
-  "Renegociacao de contrato",
-  "Antecipacao de parcelas",
-  "Revisao de taxa aprovada",
-  "Atualizacao cadastral",
-  "Alteracao de dados bancarios",
-  "Duvida sobre aplicativo",
-  "Solicitacao de comprovante",
-  "Atendimento prioritario",
-  "Suporte de acesso a conta"
+  "Falha em pagamento por aproximação",
+  "Contratação de empréstimo",
+  "Simulação de crédito pessoal",
+  "Análise de proposta PJ",
+  "Renegociação de contrato",
+  "Antecipação de parcelas",
+  "Revisão de taxa aprovada",
+  "Atualização cadastral",
+  "Alteração de dados bancários",
+  "Dúvida sobre aplicativo",
+  "Solicitação de comprovante",
+  "Atendimento prioritário",
+  "Suporte de acesso à conta"
 ];

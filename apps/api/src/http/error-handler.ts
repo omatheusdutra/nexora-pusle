@@ -8,7 +8,7 @@ export function registerErrorHandler(app: FastifyInstance) {
 
     if (error instanceof ZodError) {
       return reply.status(400).send({
-        error: "Validation error",
+        error: "Erro de validação",
         code: "VALIDATION_ERROR",
         requestId,
         details: error.flatten()
@@ -17,7 +17,7 @@ export function registerErrorHandler(app: FastifyInstance) {
 
     if ("validation" in error && error.validation) {
       return reply.status(400).send({
-        error: "Validation error",
+        error: "Erro de validação",
         code: "VALIDATION_ERROR",
         requestId,
         details: error.validation
@@ -26,7 +26,7 @@ export function registerErrorHandler(app: FastifyInstance) {
 
     if ("statusCode" in error && error.statusCode === 400) {
       return reply.status(400).send({
-        error: "Validation error",
+        error: "Erro de validação",
         code: "VALIDATION_ERROR",
         requestId,
         details: error.message
@@ -47,7 +47,7 @@ export function registerErrorHandler(app: FastifyInstance) {
     return reply.status(500).send({
       error:
         process.env.NODE_ENV === "production"
-          ? "Internal server error"
+          ? "Erro interno do servidor"
           : error.message,
       code: "INTERNAL_SERVER_ERROR",
       requestId

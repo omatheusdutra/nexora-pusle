@@ -21,6 +21,7 @@ import {
   type RouteAttendanceResult,
   type TeamDto,
   type TeamType,
+  type UserDto,
   type UserStatus,
   type UpdateAttendantStatusInput
 } from "@flowpay/shared";
@@ -33,6 +34,7 @@ import type {
   MetricsQueries,
   RealtimePublisher,
   CreateUserRecordInput,
+  UpdateUserRecordInput,
   TeamQueries,
   UserRecord,
   UserRepository,
@@ -184,8 +186,8 @@ export class InMemoryWorkflow
         attendance: dto,
         result: assignment ? "ASSIGNED" : "QUEUED",
         message: assignment
-          ? "Attendance assigned automatically"
-          : "Attendance queued because team capacity is full"
+          ? "Atendimento atribuído automaticamente"
+          : "Atendimento entrou na fila porque o time está sem capacidade"
       },
       events
     };
@@ -197,11 +199,13 @@ export class InMemoryWorkflow
     const attendance = this.getMutableAttendance(id);
 
     if (attendance.status === "FINISHED") {
-      return this.unchanged(attendance, "Attendance already finished");
+      return this.unchanged(attendance, "Atendimento já finalizado");
     }
 
     if (attendance.status !== "IN_PROGRESS") {
-      throw new ConflictError("Only in-progress attendances can be finished");
+      throw new ConflictError(
+        "Somente atendimentos em andamento podem ser finalizados"
+      );
     }
 
     const now = new Date();
@@ -242,8 +246,8 @@ export class InMemoryWorkflow
         assignedAttendance: next ? this.toAttendanceDto(next) : null,
         result: "FINISHED",
         message: next
-          ? "Attendance finished and next queued attendance assigned"
-          : "Attendance finished"
+          ? "Atendimento finalizado e próximo atendimento da fila atribuído"
+          : "Atendimento finalizado"
       },
       events
     };
@@ -255,11 +259,11 @@ export class InMemoryWorkflow
     const attendance = this.getMutableAttendance(id);
 
     if (attendance.status === "CANCELLED") {
-      return this.unchanged(attendance, "Attendance already cancelled");
+      return this.unchanged(attendance, "Atendimento já cancelado");
     }
 
     if (attendance.status === "FINISHED") {
-      throw new ConflictError("Finished attendances cannot be cancelled");
+      throw new ConflictError("Atendimentos finalizados não podem ser cancelados");
     }
 
     const shouldPullNext = attendance.status === "IN_PROGRESS";
@@ -300,8 +304,8 @@ export class InMemoryWorkflow
         assignedAttendance: next ? this.toAttendanceDto(next) : null,
         result: "CANCELLED",
         message: next
-          ? "Attendance cancelled and next queued attendance assigned"
-          : "Attendance cancelled"
+          ? "Atendimento cancelado e próximo atendimento da fila atribuído"
+          : "Atendimento cancelado"
       },
       events
     };
@@ -643,6 +647,12 @@ export class InMemoryWorkflow
     return user ? this.toUserRecord(user) : null;
   }
 
+  async listUsers(): Promise<UserDto[]> {
+    return [...this.users.values()]
+      .sort((a, b) => a.name.localeCompare(b.name))
+      .map((user) => this.toUserDto(user));
+  }
+
   async findById(id: string): Promise<UserRecord | null> {
     const user = this.users.get(id);
 
@@ -660,7 +670,7 @@ export class InMemoryWorkflow
 
   async createUser(input: CreateUserRecordInput): Promise<AuthUserDto> {
     if (await this.findByEmail(input.email)) {
-      throw new ConflictError("User e-mail already exists");
+      throw new ConflictError("E-mail já está em uso");
     }
 
     const now = new Date();
@@ -678,6 +688,27 @@ export class InMemoryWorkflow
 
     this.users.set(user.id, user);
     return this.toAuthUserDto(user);
+  }
+
+  async updateUser(
+    id: string,
+    input: UpdateUserRecordInput
+  ): Promise<UserDto> {
+    const user = this.users.get(id);
+
+    if (!user) {
+      throw new NotFoundError("Usuário");
+    }
+
+    const now = new Date();
+    user.name = input.name ?? user.name;
+    user.email = input.email?.toLowerCase() ?? user.email;
+    user.passwordHash = input.passwordHash ?? user.passwordHash;
+    user.role = input.role ?? user.role;
+    user.status = input.status ?? user.status;
+    user.updatedAt = now;
+
+    return this.toUserDto(user);
   }
 
   private seed() {
@@ -1015,14 +1046,20 @@ export class InMemoryWorkflow
     };
   }
 
-  private toUserRecord(user: MemoryUser): UserRecord {
+  private toUserDto(user: MemoryUser): UserDto {
     return {
       ...this.toAuthUserDto(user),
-      passwordHash: user.passwordHash,
       status: user.status,
       lastLoginAt: user.lastLoginAt?.toISOString() ?? null,
       createdAt: user.createdAt.toISOString(),
       updatedAt: user.updatedAt.toISOString()
+    };
+  }
+
+  private toUserRecord(user: MemoryUser): UserRecord {
+    return {
+      ...this.toUserDto(user),
+      passwordHash: user.passwordHash,
     };
   }
 

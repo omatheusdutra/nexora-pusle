@@ -16,7 +16,7 @@ import { Input } from "./ui/input";
 
 const routePresets = [
   {
-    label: "Cartoes",
+    label: "Cartões",
     subject: SUBJECT_MATCHERS.CARDS,
     Icon: CreditCard
   },
@@ -27,7 +27,7 @@ const routePresets = [
   },
   {
     label: "Geral",
-    subject: "Atualizacao cadastral",
+    subject: "Atualização cadastral",
     Icon: UserRound
   }
 ];

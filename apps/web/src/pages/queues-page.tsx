@@ -38,7 +38,7 @@ export function QueuesPage() {
                 <span className="text-sm font-bold">Fila sincronizada</span>
               </div>
               <p className="mt-2 text-sm text-muted-foreground">
-                Eventos de fila, atribuicao e reatribuicao atualizam o painel
+                Eventos de fila, atribuição e reatribuição atualizam o painel
                 sem refresh.
               </p>
             </div>
@@ -78,7 +78,7 @@ export function QueuesPage() {
                       </div>
                     </div>
                     <Badge variant={queue.queued > 0 ? "warning" : "success"}>
-                      {queue.queued > 0 ? "Atencao" : "Controlado"}
+                      {queue.queued > 0 ? "Atenção" : "Controlado"}
                     </Badge>
                   </div>
                   <div className="mt-4 h-2 overflow-hidden rounded-full bg-muted dark:bg-white/8">

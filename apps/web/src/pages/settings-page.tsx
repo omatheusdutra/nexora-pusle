@@ -17,14 +17,14 @@ export function SettingsPage() {
   return (
     <main className="grid gap-3 px-4 py-3 sm:px-5 xl:px-6">
       <PageHeader
-        eyebrow="Preferencias"
-        title="Configuracoes"
-        description="Ajustes de experiencia, conexao em tempo real e sincronizacao local do painel."
+        eyebrow="Preferências"
+        title="Configurações"
+        description="Ajustes de experiência, conexão em tempo real e sincronização local do painel."
       />
 
       <section className="grid gap-3 xl:grid-cols-2">
         <DashboardPanel
-          title="Aparencia"
+          title="Aparência"
           eyebrow="Tema"
           icon={<Settings className="h-4 w-4" />}
           compact
@@ -48,7 +48,7 @@ export function SettingsPage() {
         </DashboardPanel>
 
         <DashboardPanel
-          title="Sincronizacao"
+          title="Sincronização"
           eyebrow="Realtime"
           icon={<Wifi className="h-4 w-4" />}
           compact

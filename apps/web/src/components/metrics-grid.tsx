@@ -85,7 +85,7 @@ export function MetricsGrid({
       label: "Uso",
       value: formatPercent(summary.capacityUtilization),
       icon: Gauge,
-      trend: "ocupacao agora",
+      trend: "ocupação agora",
       tone: "warning"
     },
     {

@@ -30,8 +30,8 @@ export function ReportsPage() {
     <main className="grid gap-3 px-4 py-3 sm:px-5 xl:px-6">
       <PageHeader
         eyebrow="Inteligencia"
-        title="Relatorios"
-        description="Indicadores executivos, capacidade e distribuicao para fechamento operacional."
+        title="Relatórios"
+        description="Indicadores executivos, capacidade e distribuição para fechamento operacional."
         action={
           <Button type="button" variant="outline" size="sm">
             <Download className="h-3.5 w-3.5" />

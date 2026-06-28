@@ -26,7 +26,7 @@ export function RecentActivityTable({
       toast.success(result.message);
     },
     onError: (error) => {
-      toast.error(error instanceof Error ? error.message : "Falha na acao");
+      toast.error(error instanceof Error ? error.message : "Falha na ação");
     }
   });
 
